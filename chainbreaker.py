@@ -124,6 +124,217 @@ GENERIC_PW_HEADER = '>IIIIIIIIIIIIIIIIIIIIII'
 #}
 INTERNET_PW_HEADER = '>IIIIIIIIIIIIIIIIIIIIIIIIII'
 
+# struct X509_CERTIFICATE {
+#     UINT RecordSize;
+#     UINT RecordNumber;
+#     UINT Unknown1;
+#     UINT Unknown2;
+#     UINT CERTSIZE;
+#     UINT UNKNOWN3;
+#     UINT pCERTTYPE;
+#     UINT pCertEncoding;
+#     UINT pPrintName;
+#     UINT pAlias;
+#     UINT pSUbject;
+#     UINT pIssuer;
+#     UINT pSerialNumber;
+#     UINT pSubjectKeyIdentifier;
+#     UINT pPublicKeyHash;
+# }
+X509_CERT_HEADER = '>IIIIIIIIIIIIIII'
+
+# namespace KeySchema {
+#
+# divert(-1)
+# startClass(Key)
+# attribute(`  Ss', KeyClass, kSecKeyKeyClass, (char*) "KeyClass", 0, NULL, UINT32)
+# attribute(`  Ss', PrintName, kSecKeyPrintName, (char*) "PrintName", 0, NULL, BLOB)
+# attribute(`  Ss', Alias, kSecKeyAlias, (char*) "Alias", 0, NULL, BLOB)
+# attribute(`  Ss', Permanent, kSecKeyPermanent, (char*) "Permanent", 0, NULL, UINT32)
+# attribute(`  Ss', Private, kSecKeyPrivate, (char*) "Private", 0, NULL, UINT32)
+# attribute(`  Ss', Modifiable, kSecKeyModifiable, (char*) "Modifiable", 0, NULL, UINT32)
+# attribute(`UISs', Label, kSecKeyLabel, (char*) "Label", 0, NULL, BLOB)
+# attribute(`U Ss', ApplicationTag, kSecKeyApplicationTag, (char*) "ApplicationTag", 0, NULL, BLOB)
+# attribute(`U Ss', KeyCreator, kSecKeyKeyCreator, (char*) "KeyCreator", 0, NULL, BLOB)
+# attribute(`U Ss', KeyType, kSecKeyKeyType, (char*) "KeyType", 0, NULL, UINT32)
+# attribute(`U Ss', KeySizeInBits, kSecKeyKeySizeInBits, (char*) "KeySizeInBits", 0, NULL, UINT32)
+# attribute(`U Ss', EffectiveKeySize, kSecKeyEffectiveKeySize, (char*) "EffectiveKeySize", 0, NULL, UINT32)
+# attribute(`U Ss', StartDate, kSecKeyStartDate, (char*) "StartDate", 0, NULL, BLOB)
+# attribute(`U Ss', EndDate, kSecKeyEndDate, (char*) "EndDate", 0, NULL, BLOB)
+# attribute(`  Ss', Sensitive, kSecKeySensitive, (char*) "Sensitive", 0, NULL, UINT32)
+# attribute(`  Ss', AlwaysSensitive, kSecKeyAlwaysSensitive, (char*) "AlwaysSensitive", 0, NULL, UINT32)
+# attribute(`  Ss', Extractable, kSecKeyExtractable, (char*) "Extractable", 0, NULL, UINT32)
+# attribute(`  Ss', NeverExtractable, kSecKeyNeverExtractable, (char*) "NeverExtractable", 0, NULL, UINT32)
+# attribute(` ISs', Encrypt, kSecKeyEncrypt, (char*) "Encrypt", 0, NULL, UINT32)
+# attribute(` ISs', Decrypt, kSecKeyDecrypt, (char*) "Decrypt", 0, NULL, UINT32)
+# attribute(` ISs', Derive, kSecKeyDerive, (char*) "Derive", 0, NULL, UINT32)
+# attribute(` ISs', Sign, kSecKeySign, (char*) "Sign", 0, NULL, UINT32)
+# attribute(` ISs', Verify, kSecKeyVerify, (char*) "Verify", 0, NULL, UINT32)
+# attribute(` ISs', SignRecover, kSecKeySignRecover, (char*) "SignRecover", 0, NULL, UINT32)
+# attribute(` ISs', VerifyRecover, kSecKeyVerifyRecover, (char*) "VerifyRecover", 0, NULL, UINT32)
+# attribute(` ISs', Wrap, kSecKeyWrap, (char*) "Wrap", 0, NULL, UINT32)
+# attribute(` ISs', Unwrap, kSecKeyUnwrap, (char*) "Unwrap", 0, NULL, UINT32)
+# endClass()
+#
+# } // end namespace KeySchema
+
+# http://web.mit.edu/darwin/src/modules/Security/cdsa/cdsa/cssmtype.h
+KEY_TYPE = {
+    0x00+0x0F : 'CSSM_KEYCLASS_PUBLIC_KEY',
+    0x01+0x0F : 'CSSM_KEYCLASS_PRIVATE_KEY',
+    0x02+0x0F : 'CSSM_KEYCLASS_SESSION_KEY',
+    0x03+0x0F : 'CSSM_KEYCLASS_SECRET_PART',
+    0xFFFFFFFF : 'CSSM_KEYCLASS_OTHER'
+}
+
+CSSM_ALGORITHMS = {
+    0 : 'CSSM_ALGID_NONE',
+    1 : 'CSSM_ALGID_CUSTOM',
+    2 : 'CSSM_ALGID_DH',
+    3 : 'CSSM_ALGID_PH',
+    4 : 'CSSM_ALGID_KEA',
+    5 : 'CSSM_ALGID_MD2',
+    6 : 'CSSM_ALGID_MD4',
+    7 : 'CSSM_ALGID_MD5',
+    8 : 'CSSM_ALGID_SHA1',
+    9 : 'CSSM_ALGID_NHASH',
+    10 : 'CSSM_ALGID_HAVAL:',
+    11 : 'CSSM_ALGID_RIPEMD',
+    12 : 'CSSM_ALGID_IBCHASH',
+    13 : 'CSSM_ALGID_RIPEMAC',
+    14 : 'CSSM_ALGID_DES',
+    15 : 'CSSM_ALGID_DESX',
+    16 : 'CSSM_ALGID_RDES',
+    17 : 'CSSM_ALGID_3DES_3KEY_EDE',
+    18 : 'CSSM_ALGID_3DES_2KEY_EDE',
+    19 : 'CSSM_ALGID_3DES_1KEY_EEE',
+    20 : 'CSSM_ALGID_3DES_3KEY_EEE',
+    21 : 'CSSM_ALGID_3DES_2KEY_EEE',
+    22 : 'CSSM_ALGID_IDEA',
+    23 : 'CSSM_ALGID_RC2',
+    24 : 'CSSM_ALGID_RC5',
+    25 : 'CSSM_ALGID_RC4',
+    26 : 'CSSM_ALGID_SEAL',
+    27 : 'CSSM_ALGID_CAST',
+    28 : 'CSSM_ALGID_BLOWFISH',
+    29 : 'CSSM_ALGID_SKIPJACK',
+    30 : 'CSSM_ALGID_LUCIFER',
+    31 : 'CSSM_ALGID_MADRYGA',
+    32 : 'CSSM_ALGID_FEAL',
+    33 : 'CSSM_ALGID_REDOC',
+    34 : 'CSSM_ALGID_REDOC3',
+    35 : 'CSSM_ALGID_LOKI',
+    36 : 'CSSM_ALGID_KHUFU',
+    37 : 'CSSM_ALGID_KHAFRE',
+    38 : 'CSSM_ALGID_MMB',
+    39 : 'CSSM_ALGID_GOST',
+    40 : 'CSSM_ALGID_SAFER',
+    41 : 'CSSM_ALGID_CRAB',
+    42 : 'CSSM_ALGID_RSA',
+    43 : 'CSSM_ALGID_DSA',
+    44 : 'CSSM_ALGID_MD5WithRSA',
+    45 : 'CSSM_ALGID_MD2WithRSA',
+    46 : 'CSSM_ALGID_ElGamal',
+    47 : 'CSSM_ALGID_MD2Random',
+    48 : 'CSSM_ALGID_MD5Random',
+    49 : 'CSSM_ALGID_SHARandom',
+    50 : 'CSSM_ALGID_DESRandom',
+    51 : 'CSSM_ALGID_SHA1WithRSA',
+    52 : 'CSSM_ALGID_CDMF',
+    53 : 'CSSM_ALGID_CAST3',
+    54 : 'CSSM_ALGID_CAST5',
+    55 : 'CSSM_ALGID_GenericSecret',
+    56 : 'CSSM_ALGID_ConcatBaseAndKey',
+    57 : 'CSSM_ALGID_ConcatKeyAndBase',
+    58 : 'CSSM_ALGID_ConcatBaseAndData',
+    59 : 'CSSM_ALGID_ConcatDataAndBase',
+    60 : 'CSSM_ALGID_XORBaseAndData',
+    61 : 'CSSM_ALGID_ExtractFromKey',
+    62 : 'CSSM_ALGID_SSL3PreMasterGen',
+    63 : 'CSSM_ALGID_SSL3MasterDerive',
+    64 : 'CSSM_ALGID_SSL3KeyAndMacDerive',
+    65 : 'CSSM_ALGID_SSL3MD5_MAC',
+    66 : 'CSSM_ALGID_SSL3SHA1_MAC',
+    67 : 'CSSM_ALGID_PKCS5_PBKDF1_MD5',
+    68 : 'CSSM_ALGID_PKCS5_PBKDF1_MD2',
+    69 : 'CSSM_ALGID_PKCS5_PBKDF1_SHA1',
+    70 : 'CSSM_ALGID_WrapLynks',
+    71 : 'CSSM_ALGID_WrapSET_OAEP',
+    72 : 'CSSM_ALGID_BATON',
+    73 : 'CSSM_ALGID_ECDSA',
+    74 : 'CSSM_ALGID_MAYFLY',
+    75 : 'CSSM_ALGID_JUNIPER',
+    76 : 'CSSM_ALGID_FASTHASH',
+    77 : 'CSSM_ALGID_3DES',
+    78 : 'CSSM_ALGID_SSL3MD5',
+    79 : 'CSSM_ALGID_SSL3SHA1',
+    80 : 'CSSM_ALGID_FortezzaTimestamp',
+    81 : 'CSSM_ALGID_SHA1WithDSA',
+    82 : 'CSSM_ALGID_SHA1WithECDSA',
+    83 : 'CSSM_ALGID_DSA_BSAFE',
+    84 : 'CSSM_ALGID_ECDH',
+    85 : 'CSSM_ALGID_ECMQV',
+    86 : 'CSSM_ALGID_PKCS12_SHA1_PBE',
+    87 : 'CSSM_ALGID_ECNRA',
+    88 : 'CSSM_ALGID_SHA1WithECNRA',
+    89 : 'CSSM_ALGID_ECES',
+    90 : 'CSSM_ALGID_ECAES',
+    91 : 'CSSM_ALGID_SHA1HMAC',
+    92 : 'CSSM_ALGID_FIPS186Random',
+    93 : 'CSSM_ALGID_ECC',
+    94 : 'CSSM_ALGID_MQV',
+    95 : 'CSSM_ALGID_NRA',
+    96 : 'CSSM_ALGID_IntelPlatformRandom',
+    97 : 'CSSM_ALGID_UTC',
+    98 : 'CSSM_ALGID_HAVAL3',
+    99 : 'CSSM_ALGID_HAVAL4',
+    100 : 'CSSM_ALGID_HAVAL5',
+    101 : 'CSSM_ALGID_TIGER',
+    102 : 'CSSM_ALGID_MD5HMAC',
+    103 : 'CSSM_ALGID_PKCS5_PBKDF2',
+    104 : 'CSSM_ALGID_RUNNING_COUNTER',
+    0x7FFFFFFF : 'CSSM_ALGID_LAST'
+}
+
+# http://www.opensource.apple.com/source/Security/Security-55179.1/include/security_cdsa_utilities/KeySchema.h
+# http://www.opensource.apple.com/source/libsecurity_keychain/libsecurity_keychain-36940/lib/SecKey.h
+# struct SECKEY_HEADER {
+#     UINT RecordSize;
+#     UINT RecordNumber;
+#     UINT Unknown1;
+#     UINT Unknown2;
+#     UINT BlobSize;
+#     UINT UNKNOWN3;
+#     UINT KeyClass; // 0x0F, CSSM_KEYCLASS
+#     UINT pPrintName;  // LV. human-readable name
+#     UINT Alias;   // current unused
+#     UINT Permanent;   // @constant kSecKeyPermanent type uint32, value is nonzero if this key is permanent (stored in some keychain).  This is always 1.
+#     UINT Private; // @constant kSecKeyPrivate type uint32, value is nonzero if this key is protected by a user login or a password, or both.
+#     UINT Modifiable;
+#     UINT Label;   // This contains the hash of the public key. This is used to associate certificates and keys.
+#     UINT ApplicationTag;  // currently unused
+#     UINT KeyCreator;   // LV, CSSM_GUID structure, moduleid of the csp owning this key.
+#     UINT KeyType; // CSSM_ALGORITHMS
+#     UINT KeySizeInBits;   // Number of Bits in this key.
+#     UINT EffectiveKeySize;   // value is the effective number of bits in this key. For example a des key has 56
+#     UINT StartDate;   // CSSM_DATE. Earliest date from which this key may be used. Effective date of key
+#     UINT EndDate; // CSSM_DATE. Lastest date at whice this key may be used. Expiration date of key
+#     UINT Sensitive;
+#     UINT AlwaysSensitive;
+#     UINT Extractable; // value is nozero, this key can be wrapped
+#     UINT NeverExtractable;
+#     UINT Encrypt;    // value is nonzero, this key can be used in a encrypt operation
+#     UINT Decrypt;    // value is nonzero, this key can be used in a decrypt operation
+#     UINT Derive;
+#     UINT Sign;
+#     UINT Verify;
+#     UINT SignRecover;
+#     UINT VerifyRecover;
+#     UINT Wrap;    // key can wrap other keys
+#     UINT Unwrap;  // key can unwrap other keys
+# }
+SECKEY_HEADER = '>IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII'
+
 #struct TABLE_HEADER {
 #    uint tablesize;
 #    uint tableid;
@@ -206,6 +417,50 @@ CSSM_KEYUSE_UNWRAP = 0x00000080
 CSSM_KEYUSE_DERIVE = 0x00000100
 ####################
 
+############ CERT TYPE ##############
+CERT_TYPE = {
+    0x00 : 'CSSM_CERT_UNKNOWN',
+    0x01 : 'CSSM_CERT_X_509v1',
+    0x02 : 'CSSM_CERT_X_509v2',
+    0x03 : 'CSSM_CERT_X_509v3',
+    0x04 : 'CSSM_CERT_PGP',
+    0x05 : 'CSSM_CERT_SPKI',
+    0x06 : 'CSSM_CERT_SDSIv1',
+    0x08 : 'CSSM_CERT_Intel',
+    0x09 : 'CSSM_CERT_X_509_ATTRIBUTE',
+    0x0A : 'CSSM_CERT_X9_ATTRIBUTE',
+    0x0C : 'CSSM_CERT_ACL_ENTRY',
+    0x7FFE: 'CSSM_CERT_MULTIPLE',
+    0x7FFF : 'CSSM_CERT_LAST',
+    0x8000 : 'CSSM_CL_CUSTOM_CERT_TYPE'
+}
+####################################
+
+########### CERT ENCODING #############
+CERT_ENCODING = {
+    0x00 : 'CSSM_CERT_ENCODING_UNKNOWN',
+    0x01 : 'CSSM_CERT_ENCODING_CUSTOM',
+    0x02 : 'CSSM_CERT_ENCODING_BER',
+    0x03 : 'CSSM_CERT_ENCODING_DER',
+    0x04 : 'CSSM_CERT_ENCODING_NDR',
+    0x05 : 'CSSM_CERT_ENCODING_SEXPR',
+    0x06 : 'CSSM_CERT_ENCODING_PGP',
+    0x7FFE: 'CSSM_CERT_ENCODING_MULTIPLE',
+    0x7FFF : 'CSSM_CERT_ENCODING_LAST'
+}
+
+STD_APPLE_ADDIN_MODULE = {
+    '{87191ca0-0fc9-11d4-849a-000502b52122}': 'CSSM itself',
+    '{87191ca1-0fc9-11d4-849a-000502b52122}': 'File based DL (aka "Keychain DL")',
+    '{87191ca2-0fc9-11d4-849a-000502b52122}': 'Core CSP (local space)',
+    '{87191ca3-0fc9-11d4-849a-000502b52122}': 'Secure CSP/DL (aka "Keychain CSPDL")',
+    '{87191ca4-0fc9-11d4-849a-000502b52122}': 'X509 Certificate CL',
+    '{87191ca5-0fc9-11d4-849a-000502b52122}': 'X509 Certificate TP',
+    '{87191ca6-0fc9-11d4-849a-000502b52122}': 'DLAP/OpenDirectory access DL',
+    '{87191ca7-0fc9-11d4-849a-000502b52122}': 'TP for ".mac" related policies',
+    '{87191ca8-0fc9-11d4-849a-000502b52122}': 'Smartcard CSP/DL',
+    '{87191ca9-0fc9-11d4-849a-000502b52122}': 'DL for ".mac" certificate access'
+}
 
 SECURE_STORAGE_GROUP = 'ssgp'
 
@@ -316,6 +571,11 @@ class KeyChain():
             return 1
         self.fbuf = self.fhandle.read()
         return self.fbuf
+
+    def checkvalidkeychain(self):
+        if self.fbuf[0:4] != KEYCHAIN_SIGNATURE:
+            return False
+        return True
 
     def close(self):
         #close(self.fhandle)
@@ -871,6 +1131,148 @@ class KeyChain():
 
         return record
 
+    def get_x509_record(self, fbuf, base_addr, offset):
+        record = []
+
+        BASE_ADDR = APPL_DB_HEADER_SIZE + base_addr + offset
+
+        #print BASE_ADDR
+
+        record_meta = struct.unpack(X509_CERT_HEADER, fbuf[BASE_ADDR:BASE_ADDR + 60])
+
+        # sorting record data
+        #for record_element in record_meta:
+        #    record.append(record_element)
+
+
+        x509CertSize = record_meta[4]
+
+        x509Certificate = fbuf[BASE_ADDR + 60:BASE_ADDR + 60 + x509CertSize]  # record_meta[0] => record size
+
+        pCertType = record_meta[6]-1
+        pCertEncoding = record_meta[7]-1
+
+        record.append(struct.unpack('>I', fbuf[BASE_ADDR + pCertType:BASE_ADDR + pCertType + 4])[0]) # Cert Type
+        record.append(struct.unpack('>I', fbuf[BASE_ADDR + pCertEncoding:BASE_ADDR + pCertEncoding + 4])[0]) # Cert Encoding
+
+        Count = 0
+        for pCol in record_meta[8:]:
+            if pCol == 0:
+                record.append('')
+            else:
+                pCol -= 1
+
+                str_length = struct.unpack('>I', fbuf[BASE_ADDR + pCol:BASE_ADDR + pCol + 4])[0]
+
+                # 4byte arrangement
+                if (str_length % 4) == 0:
+                    real_str_len = (str_length / 4) * 4
+                else:
+                    real_str_len = ((str_length / 4) + 1) * 4
+                unpack_value = '>' + str(real_str_len) + 's'
+
+                data = struct.unpack(unpack_value, fbuf[BASE_ADDR + pCol + 4:BASE_ADDR + pCol + 4 + real_str_len])[0]
+                record.append(data)
+
+            Count += 1
+
+        record.append(x509Certificate)
+        return record
+
+    def get_key_record(self, fbuf, base_addr, offset):  ## PUBLIC and PRIVATE KEY
+        record = []
+
+        BASE_ADDR = APPL_DB_HEADER_SIZE + base_addr + offset
+
+        #print BASE_ADDR
+
+        RecordMeta = struct.unpack(SECKEY_HEADER, fbuf[BASE_ADDR:BASE_ADDR + 132])
+
+        # sorting record data
+        #for record_element in record_meta:
+        #    record.append(record_element)
+
+
+        KeyBlobSize = RecordMeta[4]
+
+        SIZEOFHEADER = 132
+
+        KeyBlob = fbuf[BASE_ADDR + SIZEOFHEADER:BASE_ADDR + SIZEOFHEADER + KeyBlobSize]  # record_meta[0] => record size
+
+        #hexdump(KeyBlob)
+
+        record_meta = []
+
+        for offset in range(6, len(RecordMeta)):
+            record_meta.append(RecordMeta[offset] - 1)
+
+
+        printname = self.getLV(fbuf, BASE_ADDR, record_meta[1])
+        record.append(printname)
+
+        Label = self.getLV(fbuf, BASE_ADDR, record_meta[6])
+        record.append(Label)
+
+        kSecKeyClass = self.getInt(fbuf, BASE_ADDR, record_meta[0])
+        record.append(kSecKeyClass)
+
+        kSecPrivate = self.getInt(fbuf, BASE_ADDR, record_meta[4])
+        record.append(kSecPrivate)
+
+        kSecKeyType = self.getInt(fbuf, BASE_ADDR, record_meta[9])
+        record.append(kSecKeyType)
+
+        kSecKeySizeinBits = self.getInt(fbuf, BASE_ADDR, record_meta[10])
+        record.append(kSecKeySizeinBits)
+
+        kSecEffectiveKeySize = self.getInt(fbuf, BASE_ADDR, record_meta[11])
+        record.append(kSecEffectiveKeySize)
+
+        kSecEncrypted = self.getInt(fbuf, BASE_ADDR, record_meta[16])
+        record.append(kSecEncrypted)
+
+        CSSMType = self.getLV(fbuf, BASE_ADDR, record_meta[8])
+        record.append(CSSMType.split('\x00')[0])
+
+        IV, Key = self.getEncryptedDatainBlob(KeyBlob)
+
+        record.append(IV)
+        record.append(Key)
+        return record
+
+    def getEncryptedDatainBlob(self, BlobBuf):
+        magicNumber = 0xFADE0711
+
+        BLOBHEADERSIZE = 16
+
+        BlobStruct = struct.unpack('>IIII', BlobBuf[:BLOBHEADERSIZE])
+
+        if BlobStruct[0] != magicNumber:
+            return ''
+
+        KeyData = BlobBuf[BlobStruct[2]:BlobStruct[3]]
+
+        return BlobBuf[BLOBHEADERSIZE:BLOBHEADERSIZE+8], KeyData    # IV, Encrypted Data
+
+    def getInt(self, fbuf, BASE_ADDR, pCol):
+        return struct.unpack('>I', fbuf[BASE_ADDR + pCol:BASE_ADDR + pCol + 4])[0]
+
+    def getLV(self, fbuf, BASE_ADDR, pCol):
+        str_length = struct.unpack('>I', fbuf[BASE_ADDR + pCol:BASE_ADDR + pCol + 4])[0]
+        # 4byte arrangement
+        if (str_length % 4) == 0:
+            real_str_len = (str_length / 4) * 4
+        else:
+            real_str_len = ((str_length / 4) + 1) * 4
+        unpack_value = '>' + str(real_str_len) + 's'
+        try:
+            data = struct.unpack(unpack_value, fbuf[BASE_ADDR + pCol + 4:BASE_ADDR + pCol + 4 + real_str_len])[0]
+        except struct.error:
+            print 'Length is too long : %d'%real_str_len
+            return ''
+        return data
+
+
     def get_appleshare_record(self, fbuf, base_addr, offset):
 
         record_meta = []
@@ -1144,7 +1546,6 @@ class KeyChain():
     def decrypted_keyblob(self, encryptedblob, iv, dbkey):
 
         magicCmsIV = unhexlify('4adda22c79e82105')
-        #cipheroff = struct.unpack('>I', encryptedblob[8:12])
         plain = kcdecrypt(dbkey, magicCmsIV, encryptedblob)
 
         if plain.__len__() == 0:
@@ -1166,6 +1567,30 @@ class KeyChain():
             return ''
 
         return keyblob
+
+    # test code
+    #http://opensource.apple.com/source/libsecurity_keychain/libsecurity_keychain-55044/lib/KeyItem.cpp
+    def decrypted_private_key(self, encryptedblob, iv, dbkey):
+        magicCmsIV = unhexlify('4adda22c79e82105')
+        plain = kcdecrypt(dbkey, magicCmsIV, encryptedblob)
+
+        if plain.__len__() == 0:
+            return ''
+
+        # now we handle the unwrapping. we need to take the first 32 bytes,
+        # and reverse them.
+        revplain = ''
+        for i in range(len(plain)):
+            revplain += plain[len(plain)-1 - i]
+
+        # now the real key gets found. */
+        plain = kcdecrypt(dbkey, iv, revplain)
+
+        #hexdump(plain)
+        Keyname = plain[:12]    # Copied Buffer when user click on right and copy a key on Keychain Access
+        keyblob = plain[12:]
+
+        return Keyname, keyblob
 
     ## Documents : http://www.opensource.apple.com/source/securityd/securityd-55137.1/doc/BLOBFORMAT
     def generate_master_key(self, pw, fbuf, symmetrickey_offset):
@@ -1415,6 +1840,10 @@ def main():
     #    
     #    COUNT = COUNT + 1
 
+    print 'Public Key : %x'%table_list[tableEnum[CSSM_DL_DB_RECORD_PUBLIC_KEY]]
+    print 'Private Key : %x'%table_list[tableEnum[CSSM_DL_DB_RECORD_PRIVATE_KEY]]
+    #print 'CSSM_DL_DB_RECORD_X509_CERTIFICATE : %x'%table_list[tableEnum[CSSM_DL_DB_RECORD_X509_CERTIFICATE]]
+
     # generate database key
     if password != '':
         masterkey = keychain.generate_master_key(password, fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
@@ -1591,6 +2020,65 @@ def main():
         print ' [-] Password'
         hexdump(passwd)
         print ''
+
+    table_meta, x509CertList = keychain.get_table(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_X509_CERTIFICATE]])
+
+    for x509Cert in x509CertList:
+        record = keychain.get_x509_record(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_X509_CERTIFICATE]], x509Cert)
+        print ' [-] Cert Type: %s' %CERT_TYPE[record[0]]
+        print ' [-] Cert Encoding: %s' %CERT_ENCODING[record[1]]
+        print ' [-] PrintName : %s' % record[2]
+        print ' [-] Alias : %s' % record[3]
+        print ' [-] Subject'
+        hexdump(record[4])
+        print ' [-] Issuer :'
+        hexdump(record[5])
+        print ' [-] SerialNumber'
+        hexdump(record[6])
+        print ' [-] SubjectKeyIdentifier'
+        hexdump(record[7])
+        print ' [-] Public Key Hash'
+        hexdump(record[8])
+        print ' [-] Certificate'
+        hexdump(record[9])
+        print ''
+
+    table_meta, PublicKeyList = keychain.get_table(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_PUBLIC_KEY]])
+    for PublicKey in PublicKeyList:
+        record = keychain.get_key_record(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_PUBLIC_KEY]], PublicKey)
+        print '[+] Public Key Record'
+        print ' [-] PrintName: %s' %record[0]
+        print ' [-] Label'
+        hexdump(record[1])
+        print ' [-] Key Class : %s'%KEY_TYPE[record[2]]
+        print ' [-] Private : %d'%record[3]
+        print ' [-] Key Type : %s'%CSSM_ALGORITHMS[record[4]]
+        print ' [-] Key Size : %d bits'%record[5]
+        print ' [-] Effective Key Size : %d bits'%record[6]
+        print ' [-] Extracted : %d'%record[7]
+        print ' [-] CSSM Type : %s' %STD_APPLE_ADDIN_MODULE[record[8]]
+        print ' [-] Public Key'
+        hexdump(record[10])
+
+    table_meta, PrivateKeyList = keychain.get_table(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_PRIVATE_KEY]])
+    for PrivateKey in PrivateKeyList:
+        record = keychain.get_key_record(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_PRIVATE_KEY]], PrivateKey)
+        print '[+] Private Key Record'
+        print ' [-] PrintName: %s' %record[0]
+        print ' [-] Label'
+        hexdump(record[1])
+        print ' [-] Key Class : %s'%KEY_TYPE[record[2]]
+        print ' [-] Private : %d'%record[3]
+        print ' [-] Key Type : %s'%CSSM_ALGORITHMS[record[4]]
+        print ' [-] Key Size : %d bits'%record[5]
+        print ' [-] Effective Key Size : %d bits'%record[6]
+        print ' [-] Extracted : %d'%record[7]
+        print ' [-] CSSM Type : %s' %STD_APPLE_ADDIN_MODULE[record[8]]
+        keyname, privatekey = keychain.decrypted_private_key(record[10], record[9], dbkey)
+        print ' [-] Key Name'
+        hexdump(keyname)
+        print ' [-] Decrypted Private Key'
+        hexdump(privatekey)
 
     exit()
 
