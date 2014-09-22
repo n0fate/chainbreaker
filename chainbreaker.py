@@ -29,6 +29,7 @@ from pbkdf2 import pbkdf2
 from pyDes import triple_des, CBC
 
 ATOM_SIZE = 4
+SIZEOFKEYCHAINTIME = 16
 
 KEYCHAIN_SIGNATURE = unhexlify('6b796368')
 
@@ -82,18 +83,21 @@ KEY_BLOB_RECORD = '>IIII'
 #    uint unknown;
 #    uint unknown;
 #    uint unknown;
-#    uint createtime_ptr; # key create time
-#    uint modifiedtime_ptr; # key modified time
-#    uint unknown;
-#    uint unknown;
-#    uint name_ptr; # key name
-#    uint unknown;
-#    uint unknown;
-#    uint unknown;
-#    uint unknown;
-#    uint unknown;
-#    uint account_ptr; # Account
-#    uint path_ptr; # Application Path
+#    uint CreationDate; # key create time
+#    uint ModDate; # key modified time
+#    uint Description;
+#    uint Comment;
+#    uint Creator;
+#    uint Type;
+#    uint ScriptCode;
+#    uint PrintName;
+#    uint Alias;
+#    uint Invisible;
+#    uint Negative;
+#    uint CustomIcon;
+#    uint Protected;
+#    uint Account;
+#    uint Service;
 #}
 
 GENERIC_PW_HEADER = '>IIIIIIIIIIIIIIIIIIIIII'
@@ -107,11 +111,11 @@ GENERIC_PW_HEADER = '>IIIIIIIIIIIIIIIIIIIIII'
 #    uint unknown;
 #    uint createtime_ptr; # key create time
 #    uint modifiedtime_ptr; # key modified time
-#    uint unknown;
-#    uint unknown;
-#    uint name_ptr; # key name
-#    uint unknown;
-#    uint unknown;
+#    uint Description;
+#    uint Comment;
+#    uint Creator; # key name
+#    uint Type;
+#    uint ScriptCode;
 #    uint unknown;
 #    uint unknown;
 #    uint unknown;
@@ -582,36 +586,36 @@ class KeyChain():
         return
 
     ## get apple DB Header
-    def get_header(self, fbuf, offset):
-        if fbuf == '':
+    def get_header(self, offset):
+        if self.fbuf == '':
             return 1, []
 
-        header = struct.unpack(APPL_DB_HEADER, fbuf[offset:offset + APPL_DB_HEADER_SIZE])
+        header = struct.unpack(APPL_DB_HEADER, self.fbuf[offset:offset + APPL_DB_HEADER_SIZE])
 
         return 0, header
 
-    def get_schema_info(self, fbuf, offset):
+    def get_schema_info(self, offset):
 
         table_list = []
 
-        schema_info = struct.unpack(APPL_DB_SCHEMA, fbuf[offset:offset + APPL_DB_SCHEMA_SIZE])
+        schema_info = struct.unpack(APPL_DB_SCHEMA, self.fbuf[offset:offset + APPL_DB_SCHEMA_SIZE])
 
         TableCount = schema_info[1]
 
         for i in range(0, TableCount):
             BASE_ADDR = (APPL_DB_HEADER_SIZE) + (APPL_DB_SCHEMA_SIZE)
             table_list.append(
-                struct.unpack('>I', fbuf[BASE_ADDR + (ATOM_SIZE * i):BASE_ADDR + (ATOM_SIZE * i) + ATOM_SIZE])[0])
+                struct.unpack('>I', self.fbuf[BASE_ADDR + (ATOM_SIZE * i):BASE_ADDR + (ATOM_SIZE * i) + ATOM_SIZE])[0])
 
         return schema_info, table_list
 
-    def get_table(self, fbuf, offset):
+    def get_table(self, offset):
 
         # get table list
         record_list = []
         BASE_ADDR = APPL_DB_HEADER_SIZE + offset
 
-        table_meta = struct.unpack(TABLE_HEADER, fbuf[BASE_ADDR:BASE_ADDR + 16 + 12])
+        table_meta = struct.unpack(TABLE_HEADER, self.fbuf[BASE_ADDR:BASE_ADDR + 16 + 12])
 
         RECORD_OFFSET_BASE = BASE_ADDR + 16 + 12
 
@@ -629,7 +633,7 @@ class KeyChain():
         record_count = 0
         offset = 0
         while table_meta[2] != record_count:
-            record_offset = struct.unpack('>I', fbuf[
+            record_offset = struct.unpack('>I', self.fbuf[
                                                 RECORD_OFFSET_BASE + (ATOM_SIZE * offset):RECORD_OFFSET_BASE + (
                                                     ATOM_SIZE * offset) + ATOM_SIZE])[0]
             # if len(record_list) >= 1:
@@ -646,12 +650,12 @@ class KeyChain():
     def getTablenametoList(self, recordList, tableList):
         TableDic = {}
         for count in range(0, len(recordList)):
-            tableMeta, GenericList = self.get_table(self.fbuf, tableList[count])
+            tableMeta, GenericList = self.get_table(tableList[count])
             TableDic[tableMeta[1]] = count    # extract valid table list
 
         return len(recordList), TableDic
 
-    def get_schema_info_record(self, fbuf, base_addr, offset):
+    def get_schema_info_record(self, base_addr, offset):
 
         record_meta = []
         record = []
@@ -660,11 +664,11 @@ class KeyChain():
 
         #print BASE_ADDR
 
-        record_meta = struct.unpack(SCHEMA_INFO_RECORD, fbuf[BASE_ADDR:BASE_ADDR + 40])
+        record_meta = struct.unpack(SCHEMA_INFO_RECORD, self.fbuf[BASE_ADDR:BASE_ADDR + 40])
 
         datasize = record_meta[9]  # datasize
 
-        data = fbuf[BASE_ADDR + 40:BASE_ADDR + 40 + datasize]
+        data = self.fbuf[BASE_ADDR + 40:BASE_ADDR + 40 + datasize]
 
         for record_element in record_meta:
             record.append(record_element)
@@ -673,20 +677,20 @@ class KeyChain():
 
         return record
 
-    def get_keyblob_record(self, fbuf, base_addr, offset):
+    def get_keyblob_record(self, base_addr, offset):
         record_meta = []
         #record = []
 
         BASE_ADDR = APPL_DB_HEADER_SIZE + base_addr + offset
 
-        record_meta = struct.unpack(KEY_BLOB_RECORD_HEADER, fbuf[BASE_ADDR:BASE_ADDR + 0x84])
+        record_meta = struct.unpack(KEY_BLOB_RECORD_HEADER, self.fbuf[BASE_ADDR:BASE_ADDR + 0x84])
 
         # sorting record data
         #for record_element in record_meta:
         #    record.append(record_element)
 
         # record_meta[0] => record size
-        record_buf = fbuf[BASE_ADDR + 0x84:BASE_ADDR + record_meta[0]]  # password data area
+        record_buf = self.fbuf[BASE_ADDR + 0x84:BASE_ADDR + record_meta[0]]  # password data area
 
         pw_data = struct.unpack(KEY_BLOB_RECORD, record_buf[:16])
         signature = pw_data[0]
@@ -712,481 +716,178 @@ class KeyChain():
         return record_buf[totallen + 8:totallen + 8 + 20], ciphertext, iv, 0
 
 
-    def get_genericpw_record(self, fbuf, base_addr, offset):
-
-        record_meta = []
+    def get_genericpw_record(self, base_addr, offset):
         record = []
 
         BASE_ADDR = APPL_DB_HEADER_SIZE + base_addr + offset
 
         #print BASE_ADDR
 
-        record_meta = struct.unpack(GENERIC_PW_HEADER, fbuf[BASE_ADDR:BASE_ADDR + 0x58])
-
-        # sorting record data
-        for record_element in record_meta:
-            record.append(record_element)
-
-        record_buf = fbuf[BASE_ADDR + 0x58:BASE_ADDR + record_meta[0]]  # record_meta[0] => record size
-
-        # get SECURE_STORAGE_GROUP(ssgp) data area
-        ssgp_area = record_meta[4]  # get ssgp_area (dynamic)
-
-        if ssgp_area != 0:
-            ssgp_data = record_buf[:ssgp_area]
-            record.append(ssgp_data)
-        else:
-            record.append('')
-
-
-        # get data pointer
-        createtime_ptr = record_meta[6] - 1  # TIME_DATE
-        modifiedtime_ptr = record_meta[7] - 1  # TIME_DATE
-        description_ptr = record_meta[8] - 1  # BLOB
-        comment_ptr = record_meta[9] - 1  # BLOB
-        creator_ptr = record_meta[10] - 1  # uint32
-        type_ptr = record_meta[11] - 1  # uint32
-        scriptcode_ptr = record_meta[12] - 1  # sint32
-        printname_ptr = record_meta[13] - 1  # BLOB
-        alias_ptr = record_meta[14] - 1  # BLOB
-        invisible_ptr = record_meta[15] - 1  # sint32
-        negative_ptr = record_meta[16] - 1  # sint32
-        customicon_ptr = record_meta[17] - 1  # sint32
-        protected_ptr = record_meta[18] - 1  # BLOB
-        account_ptr = record_meta[19] - 1  # BLOB
-        service_ptr = record_meta[20] - 1  # BLOB
-
-
-        # get create/last modified time (16byte * 2)
-        if createtime_ptr != -1:
-            createtime = struct.unpack('>16s', fbuf[BASE_ADDR + createtime_ptr:BASE_ADDR + createtime_ptr + 16])[0]
-            record.append(createtime)
-        else:
-            record.append('')
-
-        if modifiedtime_ptr != -1:
-            modifiedtime = struct.unpack('>16s', fbuf[BASE_ADDR + modifiedtime_ptr:BASE_ADDR + modifiedtime_ptr + 16])[
-                0]
-            record.append(modifiedtime)
-        else:
-            record.append('')
-
-        # decription
-        if description_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + description_ptr:BASE_ADDR + description_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = struct.unpack(unpack_value,
-                                 fbuf[BASE_ADDR + description_ptr + 4:BASE_ADDR + description_ptr + 4 + real_str_len])[
-                0]
-            record.append(data)
-        else:
-            record.append('')
-
-            # get account type kSecCreatorItemAttr
-        if creator_ptr != -1:
-            data_type = struct.unpack('>4s', fbuf[BASE_ADDR + creator_ptr:BASE_ADDR + creator_ptr + 4])[0]
-            record.append(data_type)
-        else:
-            record.append('')
-
-        # get account type kSecTypeItemAttr
-        if type_ptr != -1:
-            data = struct.unpack('>4s', fbuf[BASE_ADDR + type_ptr:BASE_ADDR + type_ptr + 4])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-            # get name,account,path (LENGTH:VALUE) kSecLabelItemAttr
-        if printname_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + printname_ptr:BASE_ADDR + printname_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            name = struct.unpack(unpack_value,
-                                 fbuf[BASE_ADDR + printname_ptr + 4:BASE_ADDR + printname_ptr + 4 + real_str_len])[0]
-            record.append(name)
-        else:
-            record.append('')
-
-        # get name,account,path (LENGTH:VALUE) kSecAlias
-        if alias_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + alias_ptr:BASE_ADDR + alias_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = \
-                struct.unpack(unpack_value, fbuf[BASE_ADDR + alias_ptr + 4:BASE_ADDR + alias_ptr + 4 + real_str_len])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        if account_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + account_ptr:BASE_ADDR + account_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            account = \
-                struct.unpack(unpack_value, fbuf[BASE_ADDR + account_ptr + 4:BASE_ADDR + account_ptr + 4 + real_str_len])[0]
-            record.append(account)
-        else:
-            record.append('')
-
-        if service_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + service_ptr:BASE_ADDR + service_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            path = \
-                struct.unpack(unpack_value, fbuf[BASE_ADDR + service_ptr + 4:BASE_ADDR + service_ptr + 4 + real_str_len])[0]
-            record.append(path)
-        else:
-            record.append('')
-
-        return record
-
-    def get_internetpw_record(self, fbuf, base_addr, offset):
-
-        record_meta = []
-        record = []
-
-        BASE_ADDR = APPL_DB_HEADER_SIZE + base_addr + offset
-
-        #print BASE_ADDR
-
-        record_meta = struct.unpack(INTERNET_PW_HEADER, fbuf[BASE_ADDR:BASE_ADDR + 0x68])
-
-        # sorting record data
-        for record_element in record_meta:
-            record.append(record_element)
-
-        record_buf = fbuf[BASE_ADDR + 0x68:BASE_ADDR + record_meta[0]]  # record_meta[0] => record size
-
-        # get SECURE_STORAGE_GROUP(ssgp) data area
-        ssgp_area = record_meta[4]  # get ssgp_area (dynamic)
-
-        if ssgp_area != 0:
-            ssgp_data = record_buf[:ssgp_area]
-            record.append(ssgp_data)
-        else:
-            record.append('')
-
-
-        # get data pointer
-        createtime_ptr = record_meta[6] - 1
-        modifiedtime_ptr = record_meta[7] - 1
-        description_ptr = record_meta[8] - 1
-        comment_ptr = record_meta[9] - 1
-        creator_ptr = record_meta[10] - 1
-        type_ptr = record_meta[11] - 1
-        scriptcode_ptr = record_meta[12] - 1
-        printname_ptr = record_meta[13] - 1
-        alias_ptr = record_meta[14] - 1
-        invisible_ptr = record_meta[15] - 1
-        negative_ptr = record_meta[16] - 1
-        customicon_ptr = record_meta[17] - 1
-        protected_ptr = record_meta[18] - 1
-        account_ptr = record_meta[19] - 1
-        securitydomain_ptr = record_meta[20] - 1
-        server_ptr = record_meta[21] - 1
-        protocol_ptr = record_meta[22] - 1
-        authtype_ptr = record_meta[23] - 1
-        port_ptr = record_meta[24] - 1
-        path_ptr = record_meta[25] - 1
-
-
-        # get create/last modified time (16byte * 2)
-        if createtime_ptr != -1:
-            createtime = struct.unpack('>16s', fbuf[BASE_ADDR + createtime_ptr:BASE_ADDR + createtime_ptr + 16])[0]
-            record.append(createtime)
-        else:
-            record.append('')
-
-        if modifiedtime_ptr != -1:
-            modifiedtime = struct.unpack('>16s', fbuf[BASE_ADDR + modifiedtime_ptr:BASE_ADDR + modifiedtime_ptr + 16])[
-                0]
-            record.append(modifiedtime)
-        else:
-            record.append('')
-
-        # get name,account,path (LENGTH:VALUE)
-        if description_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + description_ptr:BASE_ADDR + description_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = struct.unpack(unpack_value,
-                                 fbuf[BASE_ADDR + description_ptr + 4:BASE_ADDR + description_ptr + 4 + real_str_len])[
-                0]
-            record.append(data)
-        else:
-            record.append('')
-
-        # get name,account,path (LENGTH:VALUE)
-        if comment_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + comment_ptr:BASE_ADDR + comment_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = \
-                struct.unpack(unpack_value, fbuf[BASE_ADDR + comment_ptr + 4:BASE_ADDR + comment_ptr + 4 + real_str_len])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        # get creator type
-        if creator_ptr != -1:
-            data = struct.unpack('>4s', fbuf[BASE_ADDR + creator_ptr:BASE_ADDR + creator_ptr + 4])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        # get account type
-        if type_ptr != -1:
-            data_type = struct.unpack('>4s', fbuf[BASE_ADDR + type_ptr:BASE_ADDR + type_ptr + 4])[0]
-            record.append(data_type)
-        else:
-            record.append('')
-
-
-        # get name,account,path (LENGTH:VALUE)
-        if printname_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + printname_ptr:BASE_ADDR + printname_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = struct.unpack(unpack_value,
-                                 fbuf[BASE_ADDR + printname_ptr + 4:BASE_ADDR + printname_ptr + 4 + real_str_len])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        if alias_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + alias_ptr:BASE_ADDR + alias_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = \
-                struct.unpack(unpack_value, fbuf[BASE_ADDR + alias_ptr + 4:BASE_ADDR + alias_ptr + 4 + real_str_len])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        if protected_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + protected_ptr:BASE_ADDR + protected_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = struct.unpack(unpack_value,
-                                 fbuf[BASE_ADDR + protected_ptr + 4:BASE_ADDR + protected_ptr + 4 + real_str_len])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        if account_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + account_ptr:BASE_ADDR + account_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            account = \
-                struct.unpack(unpack_value, fbuf[BASE_ADDR + account_ptr + 4:BASE_ADDR + account_ptr + 4 + real_str_len])[0]
-            record.append(account)
-        else:
-            record.append('')
-
-        if securitydomain_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + securitydomain_ptr:BASE_ADDR + securitydomain_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = struct.unpack(unpack_value, fbuf[
-                                               BASE_ADDR + securitydomain_ptr + 4:BASE_ADDR + securitydomain_ptr + 4 + real_str_len])[
-                0]
-            record.append(data)
-        else:
-            record.append('')
-
-        if server_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + server_ptr:BASE_ADDR + server_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = \
-                struct.unpack(unpack_value, fbuf[BASE_ADDR + server_ptr + 4:BASE_ADDR + server_ptr + 4 + real_str_len])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        if protocol_ptr != -1:
-            protocol = struct.unpack('>4s', fbuf[BASE_ADDR + protocol_ptr:BASE_ADDR + protocol_ptr + 4])[0]
-            record.append(protocol)
-        else:
-            record.append('')
-
-        if authtype_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + authtype_ptr:BASE_ADDR + authtype_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            authtype = \
-                struct.unpack(unpack_value, fbuf[BASE_ADDR + authtype_ptr + 4:BASE_ADDR + authtype_ptr + 4 + real_str_len])[
-                    0]
-            record.append(authtype)
-        else:
-            record.append('')
-
-        if port_ptr != -1:
-            data = struct.unpack('>I', fbuf[BASE_ADDR + port_ptr:BASE_ADDR + port_ptr + 4])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        #print 'where ptr 0x%.8x'%where_ptr
-        if path_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + path_ptr:BASE_ADDR + path_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            where = struct.unpack(unpack_value, fbuf[BASE_ADDR + path_ptr + 4:BASE_ADDR + path_ptr + 4 + real_str_len])[
-                0]
-            record.append(where)
-        else:
-            record.append('')
-
-        return record
-
-    def get_x509_record(self, fbuf, base_addr, offset):
-        record = []
-
-        BASE_ADDR = APPL_DB_HEADER_SIZE + base_addr + offset
-
-        #print BASE_ADDR
-
-        record_meta = struct.unpack(X509_CERT_HEADER, fbuf[BASE_ADDR:BASE_ADDR + 60])
+        record_meta = struct.unpack(GENERIC_PW_HEADER, self.fbuf[BASE_ADDR:BASE_ADDR + struct.calcsize(GENERIC_PW_HEADER)])
 
         # sorting record data
         #for record_element in record_meta:
         #    record.append(record_element)
 
+        record_buf = self.fbuf[BASE_ADDR + struct.calcsize(GENERIC_PW_HEADER):BASE_ADDR + record_meta[0]]  # record_meta[0] => record size
 
-        x509CertSize = record_meta[4]
+        # get SECURE_STORAGE_GROUP(ssgp) data area
+        ssgp_area = record_meta[4]  # get ssgp_area (dynamic)
 
-        x509Certificate = fbuf[BASE_ADDR + 60:BASE_ADDR + 60 + x509CertSize]  # record_meta[0] => record size
+        if ssgp_area != 0:
+            ssgp_data = record_buf[:ssgp_area]
+            record.append(ssgp_data)
+        else:
+            record.append('')
 
-        pCertType = record_meta[6]-1
-        pCertEncoding = record_meta[7]-1
+        typeoffsetlst = []
+        for meta in range(6, len(record_meta)):
+            typeoffsetlst.append(record_meta[meta] - 1)
 
-        record.append(struct.unpack('>I', fbuf[BASE_ADDR + pCertType:BASE_ADDR + pCertType + 4])[0]) # Cert Type
-        record.append(struct.unpack('>I', fbuf[BASE_ADDR + pCertEncoding:BASE_ADDR + pCertEncoding + 4])[0]) # Cert Encoding
+        # get data pointer
+        # createtime_ptr = record_meta[6] - 1  # TIME_DATE
+        # modifiedtime_ptr = record_meta[7] - 1  # TIME_DATE
+        # description_ptr = record_meta[8] - 1  # BLOB
+        # comment_ptr = record_meta[9] - 1  # BLOB
+        # creator_ptr = record_meta[10] - 1  # uint32
+        # type_ptr = record_meta[11] - 1  # uint32
+        # scriptcode_ptr = record_meta[12] - 1  # sint32
+        # printname_ptr = record_meta[13] - 1  # BLOB
+        # alias_ptr = record_meta[14] - 1  # BLOB
+        # invisible_ptr = record_meta[15] - 1  # sint32
+        # negative_ptr = record_meta[16] - 1  # sint32
+        # customicon_ptr = record_meta[17] - 1  # sint32
+        # protected_ptr = record_meta[18] - 1  # BLOB
+        # account_ptr = record_meta[19] - 1  # BLOB
+        # service_ptr = record_meta[20] - 1  # BLOB
+        # Generic = record_meta[21] - 1  # BLOB
 
-        Count = 0
-        for pCol in record_meta[8:]:
-            if pCol == 0:
-                record.append('')
-            else:
-                pCol -= 1
-
-                str_length = struct.unpack('>I', fbuf[BASE_ADDR + pCol:BASE_ADDR + pCol + 4])[0]
-
-                # 4byte arrangement
-                if (str_length % 4) == 0:
-                    real_str_len = (str_length / 4) * 4
-                else:
-                    real_str_len = ((str_length / 4) + 1) * 4
-                unpack_value = '>' + str(real_str_len) + 's'
-
-                data = struct.unpack(unpack_value, fbuf[BASE_ADDR + pCol + 4:BASE_ADDR + pCol + 4 + real_str_len])[0]
+        for count in range(0, len(typeoffsetlst)):
+            if (count == 0) or (count == 1):    # Create/modified time
+                data = self.getkeychaintime(BASE_ADDR, typeoffsetlst[count])
+                record.append(data)
+            # Description, Printname, Alias, Account, Service
+            elif (count == 2) or (count == 7) or (count == 8) or (count == 13) or (count == 14) or (count == 15):
+                data = self.getLV(BASE_ADDR, typeoffsetlst[count])
                 record.append(data)
 
-            Count += 1
+            elif (count == 4) or (count == 5):   # Creator and Type
+                data = self.getFourCharCode(BASE_ADDR, typeoffsetlst[count])
+                record.append(data)
 
-        record.append(x509Certificate)
+            #record.append(data)
+        #print record
         return record
 
-    def get_key_record(self, fbuf, base_addr, offset):  ## PUBLIC and PRIVATE KEY
+    def get_internetpw_record(self, base_addr, offset):
+
+        record_meta = []
         record = []
 
         BASE_ADDR = APPL_DB_HEADER_SIZE + base_addr + offset
 
         #print BASE_ADDR
 
-        RecordMeta = struct.unpack(SECKEY_HEADER, fbuf[BASE_ADDR:BASE_ADDR + 132])
+        record_meta = struct.unpack(INTERNET_PW_HEADER, self.fbuf[BASE_ADDR:BASE_ADDR + 0x68])
+
+        # sorting record data
+        #for record_element in record_meta:
+        #    record.append(record_element)
+
+        record_buf = self.fbuf[BASE_ADDR + 0x68:BASE_ADDR + record_meta[0]]  # record_meta[0] => record size
+
+        # get SECURE_STORAGE_GROUP(ssgp) data area
+        ssgp_area = record_meta[4]  # get ssgp_area (dynamic)
+
+        if ssgp_area != 0:
+            ssgp_data = record_buf[:ssgp_area]
+            record.append(ssgp_data)
+        else:
+            record.append('')
+
+
+        # # get data pointer
+        # createtime_ptr = record_meta[6] - 1
+        # modifiedtime_ptr = record_meta[7] - 1
+        # description_ptr = record_meta[8] - 1
+        # comment_ptr = record_meta[9] - 1
+        # creator_ptr = record_meta[10] - 1
+        # type_ptr = record_meta[11] - 1
+        # scriptcode_ptr = record_meta[12] - 1
+        # printname_ptr = record_meta[13] - 1
+        # alias_ptr = record_meta[14] - 1
+        # invisible_ptr = record_meta[15] - 1
+        # negative_ptr = record_meta[16] - 1
+        # customicon_ptr = record_meta[17] - 1
+        # protected_ptr = record_meta[18] - 1
+        # account_ptr = record_meta[19] - 1
+        # securitydomain_ptr = record_meta[20] - 1
+        # server_ptr = record_meta[21] - 1
+        # protocol_ptr = record_meta[22] - 1
+        # authtype_ptr = record_meta[23] - 1
+        # port_ptr = record_meta[24] - 1
+        # path_ptr = record_meta[25] - 1
+
+        typeoffsetlst = []
+        for meta in range(6, len(record_meta)):
+            typeoffsetlst.append(record_meta[meta] - 1)
+
+        for count in range(0, len(typeoffsetlst)):
+            if (count == 0) or (count == 1):    # Create/modified time
+                data = self.getkeychaintime(BASE_ADDR, typeoffsetlst[count])
+                record.append(data)
+
+            # Description, Comment, Printname, Alias, Account, Security Domain, Authentication Type, Path
+            elif (count == 2) or (count == 3) or (count == 7) or (count == 8) or (count == 12) or (count == 13) or (count == 14) or (count == 15) or (count == 17) or (count == 19):
+                data = self.getLV(BASE_ADDR, typeoffsetlst[count])
+                record.append(data)
+
+            elif (count == 4) or (count == 5) or (count == 16):   # Creator or Type or Protocol
+                data = self.getFourCharCode(BASE_ADDR, typeoffsetlst[count])
+                record.append(data)
+
+            elif (count == 18):   # Port number
+                data = self.getInt(BASE_ADDR, typeoffsetlst[count])
+                record.append(data)
+
+        return record
+
+    def get_x509_record(self, base_addr, offset):
+        record = []
+
+        BASE_ADDR = APPL_DB_HEADER_SIZE + base_addr + offset
+
+        #print BASE_ADDR
+
+        record_meta = struct.unpack(X509_CERT_HEADER, self.fbuf[BASE_ADDR:BASE_ADDR + 60])
+
+        x509CertSize = record_meta[4]
+
+        x509Certificate = self.fbuf[BASE_ADDR + 60:BASE_ADDR + 60 + x509CertSize]  # record_meta[0] => record size
+
+        typeoffsetlst = []
+
+        for count in range(6, len(record_meta)):
+            typeoffsetlst.append(record_meta[count]-1)
+
+        record.append(self.getInt(BASE_ADDR, typeoffsetlst[0]))     # Cert Type
+        record.append(self.getInt(BASE_ADDR, typeoffsetlst[1]))     # Cert Encoding
+
+        for pCol in typeoffsetlst[2:]:
+            data = self.getLV(BASE_ADDR, pCol)
+            record.append(data)
+
+        record.append(x509Certificate)
+        return record
+
+    def get_key_record(self, base_addr, offset):  ## PUBLIC and PRIVATE KEY
+        record = []
+
+        BASE_ADDR = APPL_DB_HEADER_SIZE + base_addr + offset
+
+        #print BASE_ADDR
+
+        RecordMeta = struct.unpack(SECKEY_HEADER, self.fbuf[BASE_ADDR:BASE_ADDR + 132])
 
         # sorting record data
         #for record_element in record_meta:
@@ -1197,7 +898,7 @@ class KeyChain():
 
         SIZEOFHEADER = 132
 
-        KeyBlob = fbuf[BASE_ADDR + SIZEOFHEADER:BASE_ADDR + SIZEOFHEADER + KeyBlobSize]  # record_meta[0] => record size
+        KeyBlob = self.fbuf[BASE_ADDR + SIZEOFHEADER:BASE_ADDR + SIZEOFHEADER + KeyBlobSize]  # record_meta[0] => record size
 
         #hexdump(KeyBlob)
 
@@ -1207,31 +908,31 @@ class KeyChain():
             record_meta.append(RecordMeta[offset] - 1)
 
 
-        printname = self.getLV(fbuf, BASE_ADDR, record_meta[1])
+        printname = self.getLV(BASE_ADDR, record_meta[1])
         record.append(printname)
 
-        Label = self.getLV(fbuf, BASE_ADDR, record_meta[6])
+        Label = self.getLV(BASE_ADDR, record_meta[6])
         record.append(Label)
 
-        kSecKeyClass = self.getInt(fbuf, BASE_ADDR, record_meta[0])
+        kSecKeyClass = self.getInt(BASE_ADDR, record_meta[0])
         record.append(kSecKeyClass)
 
-        kSecPrivate = self.getInt(fbuf, BASE_ADDR, record_meta[4])
+        kSecPrivate = self.getInt(BASE_ADDR, record_meta[4])
         record.append(kSecPrivate)
 
-        kSecKeyType = self.getInt(fbuf, BASE_ADDR, record_meta[9])
+        kSecKeyType = self.getInt(BASE_ADDR, record_meta[9])
         record.append(kSecKeyType)
 
-        kSecKeySizeinBits = self.getInt(fbuf, BASE_ADDR, record_meta[10])
+        kSecKeySizeinBits = self.getInt(BASE_ADDR, record_meta[10])
         record.append(kSecKeySizeinBits)
 
-        kSecEffectiveKeySize = self.getInt(fbuf, BASE_ADDR, record_meta[11])
+        kSecEffectiveKeySize = self.getInt(BASE_ADDR, record_meta[11])
         record.append(kSecEffectiveKeySize)
 
-        kSecEncrypted = self.getInt(fbuf, BASE_ADDR, record_meta[16])
+        kSecEncrypted = self.getInt(BASE_ADDR, record_meta[16])
         record.append(kSecEncrypted)
 
-        CSSMType = self.getLV(fbuf, BASE_ADDR, record_meta[8])
+        CSSMType = self.getLV(BASE_ADDR, record_meta[8])
         record.append(CSSMType.split('\x00')[0])
 
         IV, Key = self.getEncryptedDatainBlob(KeyBlob)
@@ -1254,11 +955,29 @@ class KeyChain():
 
         return BlobBuf[BLOBHEADERSIZE:BLOBHEADERSIZE+8], KeyData    # IV, Encrypted Data
 
-    def getInt(self, fbuf, BASE_ADDR, pCol):
-        return struct.unpack('>I', fbuf[BASE_ADDR + pCol:BASE_ADDR + pCol + 4])[0]
+    def getkeychaintime(self, BASE_ADDR, pCol):
+        if pCol == -1:
+            return ''
+        else:
+            return struct.unpack('>16s', self.fbuf[BASE_ADDR + pCol:BASE_ADDR + pCol + struct.calcsize('>16s')])[0]
 
-    def getLV(self, fbuf, BASE_ADDR, pCol):
-        str_length = struct.unpack('>I', fbuf[BASE_ADDR + pCol:BASE_ADDR + pCol + 4])[0]
+    def getInt(self, BASE_ADDR, pCol):
+        if pCol == -1:
+            return 0
+        else:
+            return struct.unpack('>I', self.fbuf[BASE_ADDR + pCol:BASE_ADDR + pCol + 4])[0]
+
+    def getFourCharCode(self, BASE_ADDR, pCol):
+        if pCol == -1:
+            return ''
+        else:
+            return struct.unpack('>4s', self.fbuf[BASE_ADDR + pCol:BASE_ADDR + pCol + 4])[0]
+
+    def getLV(self, BASE_ADDR, pCol):
+        if pCol == -1:
+            return ''
+
+        str_length = struct.unpack('>I', self.fbuf[BASE_ADDR + pCol:BASE_ADDR + pCol + 4])[0]
         # 4byte arrangement
         if (str_length % 4) == 0:
             real_str_len = (str_length / 4) * 4
@@ -1266,14 +985,14 @@ class KeyChain():
             real_str_len = ((str_length / 4) + 1) * 4
         unpack_value = '>' + str(real_str_len) + 's'
         try:
-            data = struct.unpack(unpack_value, fbuf[BASE_ADDR + pCol + 4:BASE_ADDR + pCol + 4 + real_str_len])[0]
+            data = struct.unpack(unpack_value, self.fbuf[BASE_ADDR + pCol + 4:BASE_ADDR + pCol + 4 + real_str_len])[0]
         except struct.error:
             print 'Length is too long : %d'%real_str_len
             return ''
         return data
 
 
-    def get_appleshare_record(self, fbuf, base_addr, offset):
+    def get_appleshare_record(self, base_addr, offset):
 
         record_meta = []
         record = []
@@ -1282,18 +1001,18 @@ class KeyChain():
 
         #print BASE_ADDR
 
-        record_meta = struct.unpack(INTERNET_PW_HEADER, fbuf[BASE_ADDR:BASE_ADDR + 0x68])
+        record_meta = struct.unpack(INTERNET_PW_HEADER, self.fbuf[BASE_ADDR:BASE_ADDR + 0x68])
 
         # sorting record data
-        for record_element in record_meta:
-            record.append(record_element)
+        #for record_element in record_meta:
+        #    record.append(record_element)
 
-        record_buf = fbuf[BASE_ADDR + 0x64:BASE_ADDR + record_meta[0]]  # record_meta[0] => record size
+        record_buf = self.fbuf[BASE_ADDR + 0x68:BASE_ADDR + record_meta[0]]  # record_meta[0] => record size
 
         # get SECURE_STORAGE_GROUP(ssgp) data area
         ssgp_area = record_meta[4]  # get ssgp_area (dynamic)
 
-        if ssgp_area != 0:
+        if ssgp_area:
             ssgp_data = record_buf[:ssgp_area]
             record.append(ssgp_data)
         else:
@@ -1301,227 +1020,46 @@ class KeyChain():
 
 
         # get data pointer
-        createtime_ptr = record_meta[6] - 1
-        modifiedtime_ptr = record_meta[7] - 1
-        description_ptr = record_meta[8] - 1
-        comment_ptr = record_meta[9] - 1
-        creator_ptr = record_meta[10] - 1
-        type_ptr = record_meta[11] - 1
-        scriptcode_ptr = record_meta[12] - 1
-        printname_ptr = record_meta[13] - 1
-        alias_ptr = record_meta[14] - 1
-        invisible_ptr = record_meta[15] - 1
-        negative_ptr = record_meta[16] - 1
-        customicon_ptr = record_meta[17] - 1
-        protected_ptr = record_meta[18] - 1
-        account_ptr = record_meta[19] - 1
-        volume_ptr = record_meta[20] - 1
-        server_ptr = record_meta[21] - 1
-        protocol_ptr = record_meta[22] - 1
-        address_ptr = record_meta[23] - 1
-        signature_ptr = record_meta[24] - 1
+        # createtime_ptr = record_meta[6] - 1
+        # modifiedtime_ptr = record_meta[7] - 1
+        # description_ptr = record_meta[8] - 1
+        # comment_ptr = record_meta[9] - 1
+        # creator_ptr = record_meta[10] - 1
+        # type_ptr = record_meta[11] - 1
+        # scriptcode_ptr = record_meta[12] - 1
+        # printname_ptr = record_meta[13] - 1
+        # alias_ptr = record_meta[14] - 1
+        # invisible_ptr = record_meta[15] - 1
+        # negative_ptr = record_meta[16] - 1
+        # customicon_ptr = record_meta[17] - 1
+        # protected_ptr = record_meta[18] - 1
+        # account_ptr = record_meta[19] - 1
+        # volume_ptr = record_meta[20] - 1
+        # server_ptr = record_meta[21] - 1
+        # protocol_ptr = record_meta[22] - 1
+        # address_ptr = record_meta[23] - 1
+        # signature_ptr = record_meta[24] - 1
 
+        typeoffsetlst = []
+        for meta in range(6, len(record_meta)):
+            typeoffsetlst.append(record_meta[meta] - 1)
 
-        # get create/last modified time (16byte * 2)
-        if createtime_ptr != -1:
-            createtime = struct.unpack('>16s', fbuf[BASE_ADDR + createtime_ptr:BASE_ADDR + createtime_ptr + 16])[0]
-            record.append(createtime)
-        else:
-            record.append('')
+        for count in range(0, len(typeoffsetlst)):
+            retValue = ''
+            if (count == 0) or (count == 1):    # Create/modified time
+                retValue = self.getkeychaintime(BASE_ADDR, typeoffsetlst[count])
+                record.append(retValue)
 
-        if modifiedtime_ptr != -1:
-            modifiedtime = struct.unpack('>16s', fbuf[BASE_ADDR + modifiedtime_ptr:BASE_ADDR + modifiedtime_ptr + 16])[
-                0]
-            record.append(modifiedtime)
-        else:
-            record.append('')
+            # Description, Comment, Printname, Alias, Account, Security Domain, Authentication Type, Path
+            elif (count == 2) or (count == 3) or (count == 7) or (count == 8) or (count == 12) or (count == 13) or (count == 14) or (count == 15) or (count == 17) or (count == 18):
+                retValue = self.getLV(BASE_ADDR, typeoffsetlst[count])
+                record.append(retValue)
 
-        # get name,account,path (LENGTH:VALUE)
-        if description_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + description_ptr:BASE_ADDR + description_ptr + 4])[0]
+            elif (count == 4) or (count == 5) or (count == 16):   # Creator or Type or Protocol
+                retValue = self.getFourCharCode(BASE_ADDR, typeoffsetlst[count])
+                record.append(retValue)
 
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = struct.unpack(unpack_value,
-                                 fbuf[BASE_ADDR + description_ptr + 4:BASE_ADDR + description_ptr + 4 + real_str_len])[
-                0]
-            record.append(data)
-        else:
-            record.append('')
-
-        # get name,account,path (LENGTH:VALUE)
-        if comment_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + comment_ptr:BASE_ADDR + comment_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = \
-                struct.unpack(unpack_value, fbuf[BASE_ADDR + comment_ptr + 4:BASE_ADDR + comment_ptr + 4 + real_str_len])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        # get creator type
-        if creator_ptr != -1:
-            data = struct.unpack('>4s', fbuf[BASE_ADDR + creator_ptr:BASE_ADDR + creator_ptr + 4])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        # get account type
-        if type_ptr != -1:
-            data_type = struct.unpack('>4s', fbuf[BASE_ADDR + type_ptr:BASE_ADDR + type_ptr + 4])[0]
-            record.append(data_type)
-        else:
-            record.append('')
-
-
-        # get name,account,path (LENGTH:VALUE)
-        if printname_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + printname_ptr:BASE_ADDR + printname_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = struct.unpack(unpack_value,
-                                 fbuf[BASE_ADDR + printname_ptr + 4:BASE_ADDR + printname_ptr + 4 + real_str_len])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        if alias_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + alias_ptr:BASE_ADDR + alias_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = \
-                struct.unpack(unpack_value, fbuf[BASE_ADDR + alias_ptr + 4:BASE_ADDR + alias_ptr + 4 + real_str_len])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        if protected_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + protected_ptr:BASE_ADDR + protected_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = struct.unpack(unpack_value,
-                                 fbuf[BASE_ADDR + protected_ptr + 4:BASE_ADDR + protected_ptr + 4 + real_str_len])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        if account_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + account_ptr:BASE_ADDR + account_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            account = \
-                struct.unpack(unpack_value, fbuf[BASE_ADDR + account_ptr + 4:BASE_ADDR + account_ptr + 4 + real_str_len])[0]
-            record.append(account)
-        else:
-            record.append('')
-
-        if volume_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + volume_ptr:BASE_ADDR + volume_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = \
-                struct.unpack(unpack_value, fbuf[BASE_ADDR + volume_ptr + 4:BASE_ADDR + volume_ptr + 4 + real_str_len])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        if server_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + server_ptr:BASE_ADDR + server_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = \
-                struct.unpack(unpack_value, fbuf[BASE_ADDR + server_ptr + 4:BASE_ADDR + server_ptr + 4 + real_str_len])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        if protocol_ptr != -1:
-            protocol = struct.unpack('>4s', fbuf[BASE_ADDR + protocol_ptr:BASE_ADDR + protocol_ptr + 4])[0]
-            record.append(protocol)
-        else:
-            record.append('')
-
-        #print 'where ptr 0x%.8x'%where_ptr
-        if address_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + address_ptr:BASE_ADDR + address_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = \
-                struct.unpack(unpack_value, fbuf[BASE_ADDR + address_ptr + 4:BASE_ADDR + address_ptr + 4 + real_str_len])[0]
-            record.append(data)
-        else:
-            record.append('')
-
-        #print 'where ptr 0x%.8x'%where_ptr
-        if signature_ptr != -1:
-            str_length = struct.unpack('>I', fbuf[BASE_ADDR + signature_ptr:BASE_ADDR + signature_ptr + 4])[0]
-
-            # 4byte arrangement
-            if (str_length % 4) == 0:
-                real_str_len = (str_length / 4) * 4
-            else:
-                real_str_len = ((str_length / 4) + 1) * 4
-            unpack_value = '>' + str(real_str_len) + 's'
-
-            data = struct.unpack(unpack_value,
-                                 fbuf[BASE_ADDR + signature_ptr + 4:BASE_ADDR + signature_ptr + 4 + real_str_len])[0]
-            record.append(data)
-        else:
-            record.append('')
+            #record.append(retValue)
 
         return record
 
@@ -1593,13 +1131,13 @@ class KeyChain():
         return Keyname, keyblob
 
     ## Documents : http://www.opensource.apple.com/source/securityd/securityd-55137.1/doc/BLOBFORMAT
-    def generate_master_key(self, pw, fbuf, symmetrickey_offset):
+    def generate_master_key(self, pw, symmetrickey_offset):
 
         base_addr = APPL_DB_HEADER_SIZE + symmetrickey_offset + 0x38  # header
 
         # salt
         SALTLEN = 20
-        salt = fbuf[base_addr + 44:base_addr + 44 + SALTLEN]
+        salt = self.fbuf[base_addr + 44:base_addr + 44 + SALTLEN]
 
         master = pbkdf2(pw, salt, 1000, KEYLEN)
 
@@ -1609,25 +1147,25 @@ class KeyChain():
         return master
 
     ## find DBBlob and extract Wrapping key
-    def find_wrapping_key(self, master, fbuf, symmetrickey_offset):
+    def find_wrapping_key(self, master, symmetrickey_offset):
 
         base_addr = APPL_DB_HEADER_SIZE + symmetrickey_offset + 0x38
 
         # startCryptoBlob
-        cipher_text_offset = struct.unpack('>I', fbuf[base_addr + 8:base_addr + 8 + ATOM_SIZE])[0]
+        cipher_text_offset = struct.unpack('>I', self.fbuf[base_addr + 8:base_addr + 8 + ATOM_SIZE])[0]
 
         # totalength
-        totallength = struct.unpack('>I', fbuf[base_addr + 12:base_addr + 12 + ATOM_SIZE])[0]
+        totallength = struct.unpack('>I', self.fbuf[base_addr + 12:base_addr + 12 + ATOM_SIZE])[0]
 
         # IV
         IVLEN = 8
-        iv = fbuf[base_addr + 64:base_addr + 64 + IVLEN]
+        iv = self.fbuf[base_addr + 64:base_addr + 64 + IVLEN]
 
         #print ' [-] IV'
         #hexdump(iv)
 
         # get cipher text area
-        ciphertext = fbuf[base_addr + cipher_text_offset:base_addr + totallength]
+        ciphertext = self.fbuf[base_addr + cipher_text_offset:base_addr + totallength]
 
         #print ' [-] CipherText'
         #hexdump(ciphertext)
@@ -1769,7 +1307,7 @@ def main():
 
     keychain_header = []
 
-    bRet, keychain_header = keychain.get_header(fbuf, 0)
+    bRet, keychain_header = keychain.get_header(0)
     #print '[+] KeyChain Header'
     #print ' [-] Signature : %s'%keychain_header[0]
     #print ' [-] Version : 0x%.8x'%keychain_header[1]
@@ -1780,14 +1318,14 @@ def main():
         print 'Invalid Keychain Format'
         exit()
 
-    schema_info, table_list = keychain.get_schema_info(fbuf, keychain_header[3])
+    schema_info, table_list = keychain.get_schema_info(keychain_header[3])
     #print '[+] Schema Info'
     #print ' [-] Schema Size : 0x%.8x'%schema_info[0]
     #print ' [-] Table Count : 0x%.8x'%schema_info[1]
     #for table_offset in table_list:
     #    print ' [-] Table Offset: 0x%.8x'%table_offset
 
-    table_meta, record_list = keychain.get_table(fbuf, table_list[0])
+    table_meta, record_list = keychain.get_table(table_list[0])
     #
     #record_offset = record_list[0]
     #tempcount = 0
@@ -1846,11 +1384,11 @@ def main():
 
     # generate database key
     if password != '':
-        masterkey = keychain.generate_master_key(password, fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
-        dbkey = keychain.find_wrapping_key(masterkey, fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
+        masterkey = keychain.generate_master_key(password, table_list[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
+        dbkey = keychain.find_wrapping_key(masterkey, table_list[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
 
     elif masterkey != '':
-        dbkey = keychain.find_wrapping_key(unhexlify(masterkey), fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
+        dbkey = keychain.find_wrapping_key(unhexlify(masterkey), table_list[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
 
     else:
         print 'password or keychain:%s' % password
@@ -1881,10 +1419,10 @@ def main():
 
     # get symmetric key blob
     print '[+] Symmetric Key Table: 0x%.8x' % (APPL_DB_HEADER_SIZE + table_list[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]])
-    table_meta, symmetrickey_list = keychain.get_table(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]])
+    table_meta, symmetrickey_list = keychain.get_table(table_list[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]])
 
     for symmetrickey_record in symmetrickey_list:
-        keyblob, ciphertext, iv, return_value = keychain.get_keyblob_record(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]],
+        keyblob, ciphertext, iv, return_value = keychain.get_keyblob_record(table_list[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]],
                                                                             symmetrickey_record)
         if return_value == 0:
             passwd = keychain.decrypted_keyblob(ciphertext, iv, dbkey)
@@ -1911,120 +1449,129 @@ def main():
 
     ## GET DBBlob Record List
     #print '[+] Generic Password: 0x%.8x'%(APPL_DB_HEADER_SIZE+table_list[genericpw_offset])
-    table_meta, genericpw_list = keychain.get_table(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_GENERIC_PASSWORD]])
+    table_meta, genericpw_list = keychain.get_table(table_list[tableEnum[CSSM_DL_DB_RECORD_GENERIC_PASSWORD]])
 
     ## GET DBBlob Record
     for genericpw in genericpw_list:
-        record = keychain.get_genericpw_record(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_GENERIC_PASSWORD]], genericpw)
+        record = keychain.get_genericpw_record(table_list[tableEnum[CSSM_DL_DB_RECORD_GENERIC_PASSWORD]], genericpw)
         print '[+] Generic Password Record'
-        print ' [-] RecordSize : 0x%.8x' % record[0]
-        print ' [-] Record Number : 0x%.8x' % record[1]
+        #print ' [-] RecordSize : 0x%.8x' % record[0]
+        #print ' [-] Record Number : 0x%.8x' % record[1]
         #print ' [-] Unknown1 : 0x%.8x'%record[2]
         #print ' [-] Unknown2 : 0x%.8x'%record[3]
-        print ' [-] SECURE_STORAGE_GROUP(SSGP) Area : 0x%.8x' % record[4]
+        #print ' [-] SECURE_STORAGE_GROUP(SSGP) Area : 0x%.8x' % record[4]
         #print ' [-] Secure Storage Group(encrypted blob)'
         #hexdump(record[22])
         try:
-            real_key = key_list[record[22][0:20]]
-            passwd = keychain.decrypted_db_blob(record[22], real_key)
+            real_key = key_list[record[0][0:20]]
+            passwd = keychain.decrypted_db_blob(record[0], real_key)
         except KeyError:
             passwd = ''
         #print ''
-        print ' [-] Create DateTime: %s' % record[23]  # 16byte string
-        print ' [-] Last Modified DateTime: %s' % record[24]  # 16byte string
-        print ' [-] Description : %s' % record[25]
-        print ' [-] Creator : %s' % record[26]
-        print ' [-] Type : %s' % record[27]
-        print ' [-] PrintName : %s' % record[28]
-        print ' [-] Alias : %s' % record[29]
-        print ' [-] Account : %s' % record[30]
-        print ' [-] Service : %s' % record[31]
+        print ' [-] Create DateTime: %s' % record[1]  # 16byte string
+        print ' [-] Last Modified DateTime: %s' % record[2]  # 16byte string
+        print ' [-] Description : %s' % record[3]
+        print ' [-] Creator : %s' % record[4]
+        print ' [-] Type : %s' % record[5]
+        print ' [-] PrintName : %s' % record[6]
+        print ' [-] Alias : %s' % record[7]
+        print ' [-] Account : %s' % record[8]
+        print ' [-] Service : %s' % record[9]
         print ' [-] Password'
         hexdump(passwd)
         print ''
 
 
     #print '[+] Internet: 0x%.8x'%(APPL_DB_HEADER_SIZE+table_list[internet_offset])
-    table_meta, internetpw_list = keychain.get_table(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_INTERNET_PASSWORD]])
+    table_meta, internetpw_list = keychain.get_table(table_list[tableEnum[CSSM_DL_DB_RECORD_INTERNET_PASSWORD]])
 
     for internetpw in internetpw_list:
-        record = keychain.get_internetpw_record(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_INTERNET_PASSWORD]], internetpw)
+        record = keychain.get_internetpw_record(table_list[tableEnum[CSSM_DL_DB_RECORD_INTERNET_PASSWORD]], internetpw)
         print '[+] Internet Record'
-        print ' [-] RecordSize : 0x%.8x' % record[0]
-        print ' [-] Record Number : 0x%.8x' % record[1]
+        #print ' [-] RecordSize : 0x%.8x' % record[0]
+        #print ' [-] Record Number : 0x%.8x' % record[1]
         #print ' [-] Unknown1 : 0x%.8x'%record[2]
         #print ' [-] Unknown2 : 0x%.8x'%record[3]
-        print ' [-] SECURE_STORAGE_GROUP(SSGP) Area : 0x%.8x' % record[4]
+        #print ' [-] SECURE_STORAGE_GROUP(SSGP) Area : 0x%.8x' % record[4]
         #print ' [-] Secure Storage Group(encrypted blob)'
         #hexdump(record[22])
         try:
-            real_key = key_list[record[26][0:20]]
-            passwd = keychain.decrypted_db_blob(record[26], real_key)
+            real_key = key_list[record[0][0:20]]
+            passwd = keychain.decrypted_db_blob(record[0], real_key)
         except KeyError:
             passwd = ''
         #print ''
-        print ' [-] Create DateTime: %s' % record[27]  # 16byte string
-        print ' [-] Last Modified DateTime: %s' % record[28]  # 16byte string
-        print ' [-] Description : %s' % record[29]
-        print ' [-] Comment : %s' % record[30]
-        print ' [-] Creator : %s' % record[31]
-        print ' [-] Type : %s' % record[32]
-        print ' [-] PrintName : %s' % record[33]
-        print ' [-] Alias : %s' % record[34]
-        print ' [-] Protected : %s' % record[35]
-        print ' [-] Account : %s' % record[36]
-        print ' [-] SecurityDomain : %s' % record[37]
-        print ' [-] Server : %s' % record[38]
-        print ' [-] Protocol Type : %s' % PROTOCOL_TYPE[record[39]]
-        print ' [-] Auth Type : %s' % AUTH_TYPE[record[40]]
-        print ' [-] Port : %d' % record[41]
-        print ' [-] Path : %s' % record[42]
+        print ' [-] Create DateTime: %s' % record[1]  # 16byte string
+        print ' [-] Last Modified DateTime: %s' % record[2]  # 16byte string
+        print ' [-] Description : %s' % record[3]
+        print ' [-] Comment : %s' % record[4]
+        print ' [-] Creator : %s' % record[5]
+        print ' [-] Type : %s' % record[6]
+        print ' [-] PrintName : %s' % record[7]
+        print ' [-] Alias : %s' % record[8]
+        print ' [-] Protected : %s' % record[9]
+        print ' [-] Account : %s' % record[10]
+        print ' [-] SecurityDomain : %s' % record[11]
+        print ' [-] Server : %s' % record[12]
+        try:
+            print ' [-] Protocol Type : %s' % PROTOCOL_TYPE[record[13]]
+        except KeyError:
+            print ' [-] Protocol Type : %s' % record[13]
+        try:
+            print ' [-] Auth Type : %s' % AUTH_TYPE[record[14]]
+        except KeyError:
+            print ' [-] Auth Type : %s' % record[14]
+        print ' [-] Port : %d' % record[15]
+        print ' [-] Path : %s' % record[16]
         print ' [-] Password'
         hexdump(passwd)
         print ''
 
     #print '[+] AppleShare Table: 0x%.8x'%(APPL_DB_HEADER_SIZE+table_list[appleshare_offset])
-    table_meta, applesharepw_list = keychain.get_table(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD]])
+    table_meta, applesharepw_list = keychain.get_table(table_list[tableEnum[CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD]])
 
     for applesharepw in applesharepw_list:
-        record = keychain.get_applesharepw_record(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD]], applesharepw)
+        record = keychain.get_appleshare_record(table_list[tableEnum[CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD]], applesharepw)
         print '[+] AppleShare Record'
-        print ' [-] RecordSize : 0x%.8x' % record[0]
-        print ' [-] Record Number : 0x%.8x' % record[1]
+        #print ' [-] RecordSize : 0x%.8x' % record[0]
+        #print ' [-] Record Number : 0x%.8x' % record[1]
         #print ' [-] Unknown1 : 0x%.8x'%record[2]
         #print ' [-] Unknown2 : 0x%.8x'%record[3]
-        print ' [-] SECURE_STORAGE_GROUP(SSGP) Area : 0x%.8x' % record[4]
+        #print ' [-] SECURE_STORAGE_GROUP(SSGP) Area : 0x%.8x' % record[4]
         #print ' [-] Secure Storage Group(encrypted blob)'
         #hexdump(record[22])
         try:
-            real_key = key_list[record[26][0:20]]
-            passwd = keychain.decrypted_db_blob(record[26], real_key)
+            real_key = key_list[record[0][0:20]]
+            passwd = keychain.decrypted_db_blob(record[0], real_key)
         except KeyError:
             passwd = ''
         #print ''
-        print ' [-] Create DateTime: %s' % record[27]  # 16byte string
-        print ' [-] Last Modified DateTime: %s' % record[28]  # 16byte string
-        print ' [-] Description : %s' % record[29]
-        print ' [-] Comment : %s' % record[30]
-        print ' [-] Creator : %s' % record[31]
-        print ' [-] Type : %s' % record[32]
-        print ' [-] PrintName : %s' % record[33]
-        print ' [-] Alias : %s' % record[34]
-        print ' [-] Protected : %s' % record[35]
-        print ' [-] Account : %s' % record[36]
-        print ' [-] Volume : %s' % record[37]
-        print ' [-] Server : %s' % record[38]
-        print ' [-] Protocol Type : %s' % PROTOCOL_TYPE[record[39]]
-        print ' [-] Address : %d' % record[40]
-        print ' [-] Signature : %s' % record[41]
+        print ' [-] Create DateTime: %s' % record[1]  # 16byte string
+        print ' [-] Last Modified DateTime: %s' % record[2]  # 16byte string
+        print ' [-] Description : %s' % record[3]
+        print ' [-] Comment : %s' % record[4]
+        print ' [-] Creator : %s' % record[5]
+        print ' [-] Type : %s' % record[6]
+        print ' [-] PrintName : %s' % record[7]
+        print ' [-] Alias : %s' % record[8]
+        print ' [-] Protected : %s' % record[9]
+        print ' [-] Account : %s' % record[10]
+        print ' [-] Volume : %s' % record[11]
+        print ' [-] Server : %s' % record[12]
+        try:
+            print ' [-] Protocol Type : %s' % PROTOCOL_TYPE[record[13]]
+        except KeyError:
+            print ' [-] Protocol Type : %s' % record[13]
+        print ' [-] Address : %d' % record[14]
+        print ' [-] Signature : %s' % record[15]
         print ' [-] Password'
         hexdump(passwd)
         print ''
 
-    table_meta, x509CertList = keychain.get_table(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_X509_CERTIFICATE]])
+    table_meta, x509CertList = keychain.get_table(table_list[tableEnum[CSSM_DL_DB_RECORD_X509_CERTIFICATE]])
 
     for x509Cert in x509CertList:
-        record = keychain.get_x509_record(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_X509_CERTIFICATE]], x509Cert)
+        record = keychain.get_x509_record(table_list[tableEnum[CSSM_DL_DB_RECORD_X509_CERTIFICATE]], x509Cert)
         print ' [-] Cert Type: %s' %CERT_TYPE[record[0]]
         print ' [-] Cert Encoding: %s' %CERT_ENCODING[record[1]]
         print ' [-] PrintName : %s' % record[2]
@@ -2043,9 +1590,9 @@ def main():
         hexdump(record[9])
         print ''
 
-    table_meta, PublicKeyList = keychain.get_table(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_PUBLIC_KEY]])
+    table_meta, PublicKeyList = keychain.get_table(table_list[tableEnum[CSSM_DL_DB_RECORD_PUBLIC_KEY]])
     for PublicKey in PublicKeyList:
-        record = keychain.get_key_record(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_PUBLIC_KEY]], PublicKey)
+        record = keychain.get_key_record(table_list[tableEnum[CSSM_DL_DB_RECORD_PUBLIC_KEY]], PublicKey)
         print '[+] Public Key Record'
         print ' [-] PrintName: %s' %record[0]
         print ' [-] Label'
@@ -2060,9 +1607,9 @@ def main():
         print ' [-] Public Key'
         hexdump(record[10])
 
-    table_meta, PrivateKeyList = keychain.get_table(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_PRIVATE_KEY]])
+    table_meta, PrivateKeyList = keychain.get_table(table_list[tableEnum[CSSM_DL_DB_RECORD_PRIVATE_KEY]])
     for PrivateKey in PrivateKeyList:
-        record = keychain.get_key_record(fbuf, table_list[tableEnum[CSSM_DL_DB_RECORD_PRIVATE_KEY]], PrivateKey)
+        record = keychain.get_key_record(table_list[tableEnum[CSSM_DL_DB_RECORD_PRIVATE_KEY]], PrivateKey)
         print '[+] Private Key Record'
         print ' [-] PrintName: %s' %record[0]
         print ' [-] Label'
