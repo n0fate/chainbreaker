@@ -692,7 +692,10 @@ class KeyChain():
         # record_meta[0] => record size
         record_buf = self.fbuf[BASE_ADDR + 0x84:BASE_ADDR + record_meta[0]]  # password data area
 
-        pw_data = struct.unpack(KEY_BLOB_RECORD, record_buf[:16])
+        try:
+            pw_data = struct.unpack(KEY_BLOB_RECORD, record_buf[:16])
+        except struct.error:
+            return '','','', 1
         signature = pw_data[0]
         version = pw_data[1]
         cipheroff = pw_data[2]
@@ -1349,35 +1352,6 @@ def main():
 
     tableCount, tableEnum = keychain.getTablenametoList(record_list, table_list)
 
-    #COUNT = 0
-    #for record_offset in record_list:
-    #    record = keychain.get_schema_info_record(fbuf, table_list[0], record_offset)
-    #    if record[8] == CSSM_DL_DB_RECORD_GENERIC_PASSWORD: # DBBlob
-    #        generic_record = record
-    #        generic_offset = COUNT
-    #    
-    #    elif record[8] == CSSM_DL_DB_RECORD_INTERNET_PASSWORD: # DBBlob
-    #        internet_record = record
-    #        internet_offset = COUNT
-    #    
-    #    elif record[8] == CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD: # DBBlob
-    #        appleshare_record = record
-    #        privatekey_offset = COUNT
-    #    
-    #    elif record[8] == CSSM_DL_DB_RECORD_METADATA: # DBBlob
-    #        dbblob_record = record
-    #        dbblob_offset = COUNT
-    #    
-    #    elif record[8] == CSSM_DL_DB_RECORD_X509_CERTIFICATE:
-    #        record_meta_record = record
-    #        record_meta_offset = COUNT
-    #    
-    #    elif record[8] == CSSM_DL_DB_RECORD_PUBLIC_KEY:
-    #        publickey_record = record
-    #        internet_offset = COUNT
-    #    
-    #    COUNT = COUNT + 1
-
     print 'Public Key : %x'%table_list[tableEnum[CSSM_DL_DB_RECORD_PUBLIC_KEY]]
     print 'Private Key : %x'%table_list[tableEnum[CSSM_DL_DB_RECORD_PRIVATE_KEY]]
     #print 'CSSM_DL_DB_RECORD_X509_CERTIFICATE : %x'%table_list[tableEnum[CSSM_DL_DB_RECORD_X509_CERTIFICATE]]
@@ -1400,23 +1374,6 @@ def main():
 
     key_list = {}  # keyblob list
 
-    ## get public key blob
-    #print '[+] Public Key Table: 0x%.8x'%(APPL_DB_HEADER_SIZE+table_list[publickey_offset])
-    #table_meta, publickey_list = keychain.get_table(fbuf, table_list[publickey_offset])
-    #
-    #for publickey_record in publickey_list:
-    #    keyblob, ciphertext, iv, return_value = keychain.get_keyblob_record(fbuf, table_list[publickey_offset], publickey_record)
-    #    if return_value == 0:
-    #        passwd = keychain.decrypted_keyblob(ciphertext, iv ,dbkey)
-    #        
-    #        key_list[keyblob] = passwd
-    #        
-    #        #print ' [-] KeyBlob'
-    #        #hexdump(keyblob)
-    #        #
-    #        #print ' [-] Password'
-    #        #hexdump(passwd)
-
     # get symmetric key blob
     print '[+] Symmetric Key Table: 0x%.8x' % (APPL_DB_HEADER_SIZE + table_list[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]])
     table_meta, symmetrickey_list = keychain.get_table(table_list[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]])
@@ -1428,23 +1385,6 @@ def main():
             passwd = keychain.decrypted_keyblob(ciphertext, iv, dbkey)
             if passwd != '':
                 key_list[keyblob] = passwd
-
-    ## get private key blob
-    #print '[+] Private Key Table: 0x%.8x'%(APPL_DB_HEADER_SIZE+table_list[privatekey_offset])
-    #table_meta, privatekey_list = keychain.get_table(fbuf, table_list[privatekey_offset])
-    #
-    #for privatekey_record in privatekey_list:
-    #    keyblob, ciphertext, iv, return_value = keychain.get_keyblob_record(fbuf, table_list[privatekey_offset], privatekey_record)
-    #    if return_value == 0:
-    #        passwd = keychain.decrypted_keyblob(ciphertext, iv ,dbkey)
-    #        
-    #        key_list[keyblob] = passwd
-    #        
-    #        #print ' [-] KeyBlob'
-    #        #hexdump(keyblob)
-    #        #
-    #        #print ' [-] Password'
-    #        #hexdump(passwd)
 
 
     ## GET DBBlob Record List
