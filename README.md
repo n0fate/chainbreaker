@@ -7,7 +7,7 @@ Master Key candidates can be extracted from volafox keychaindump module.
 
 ##Supported OS
 
-Snow Leopard, Lion, Mountain Lion, Mavericks
+Snow Leopard, Lion, Mountain Lion, Mavericks, Yosemite
 
 ##How to use:
 
