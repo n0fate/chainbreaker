@@ -1,35 +1,24 @@
 chainbreaker
 ============
 
-Chain Breaker is able to extract user credential in a Keychain file with Master Key or user password in forensically sound manner.
-
-Master Key candidates can be extracted from volafox keychaindump module.
+The chainbreaker can extract user credential in a Keychain file with Master Key or user password in forensically sound manner.
+Master Key candidates can be extracted from [volafox](https://github.com/n0fate/volafox) or [volatility](https://github.com/volatilityfoundation/volatility) keychaindump module.
 
 ##Supported OS
+Snow Leopard, Lion, Mountain Lion, Mavericks, Yosemite, El Capitan(Beta)
 
-Snow Leopard, Lion, Mountain Lion, Mavericks, Yosemite
+## Target Keychain file
+* User Keychain(~/Users/[username]/Library/Keychains/login.keychain) : It has user id/password about installed application, ssh/vpn, mail, contacts, calendar and so on. It has key for call history decryption too.
+* System Keychain(/System/Library/Keychains/System.keychain) : It has WiFi password registered by local machine and several certifications and public/private keys. (Detailed Info : http://forensic.n0fate.com/2014/09/system-keychain-analysis/)
 
 ##How to use:
 
-### requirement : keychain file and user password
-
-If you have only keychain file, command as follow:
-
-### command
+If you have only keychain file and password, command as follow:
 
     # python chainbreaker.py -i [keychain file] -p [user password]
 
 
-
-### requirement : keychain file and memory image
-
-If you have memory image, you can extract master key candidates using volafox project.
-
-The volafox, memory forensic toolit for Mac OS X has been written in Python as a cross platform open source project.
-
-[volafox project - google code](http://code.google.com/p/volafox/)
-
-### command
+If you have memory image, you can extract master key candidates using volafox project. The volafox, memory forensic toolit for Mac OS X has been written in Python as a cross platform open source project. Of course, you can dump it using volatility.
 
     $ python volafox.py -i [memory image] -o keychaindump
     ....
@@ -39,43 +28,6 @@ The volafox, memory forensic toolit for Mac OS X has been written in Python as a
 
 ## Example
     $ python vol.py -i ~/Desktop/show/macosxml.mem -o keychaindump
-    
-    [+] Virtual Memory Map Information
-     [-] Virtual Address Start Point: 0x108240000
-     [-] Virtual Address End Point: 0x7fffffe00000
-     [-] Number of Entries: 85
-    
-    [+] Generating Process Virtual Memory Maps
-     [-] Region from 0x108240000 to 0x108349000 (r-x, max rwx;)
-     [-] Region from 0x108349000 to 0x108356000 (rw-, max rwx;)
-     [-] Region from 0x108356000 to 0x108371000 (r--, max rwx;)
-     [-] Region from 0x108371000 to 0x108372000 (r--, max rwx;)
-     [-] Region from 0x108372000 to 0x108373000 (r--, max rwx;)
-     [-] Region from 0x108373000 to 0x108374000 (rw-, max rwx;)
-     [-] Region from 0x108374000 to 0x108375000 (r--, max rwx;)
-     [-] Region from 0x108375000 to 0x108384000 (r-x, max rwx;)
-     [-] Region from 0x108384000 to 0x108385000 (rw-, max rwx;)
-     ... <snip> ...
-     [-] Region from 0x108821000 to 0x108822000 (---, max rwx;)
-     [-] Region from 0x108822000 to 0x108837000 (rw-, max rwx;)
-     [-] Region from 0x108837000 to 0x108838000 (---, max rwx;)
-     [-] Region from 0x108838000 to 0x108839000 (---, max rwx;)
-     [-] Region from 0x108839000 to 0x10884e000 (rw-, max rwx;)
-     [-] Region from 0x10884e000 to 0x10884f000 (---, max rwx;)
-     [-] Region from 0x10884f000 to 0x1088aa000 (rw-, max rwx;)
-     [-] Region from 0x1088aa000 to 0x109acf000 (r--, max r-x;)
-     [-] Region from 0x7fef03400000 to 0x7fef03500000 (rw-, max rwx;)
-     [-] Region from 0x7fef03500000 to 0x7fef03600000 (rw-, max rwx;)
-     [-] Region from 0x7fef03600000 to 0x7fef03700000 (rw-, max rwx;)
-     [-] Region from 0x7fef03800000 to 0x7fef04000000 (rw-, max rwx;)
-     [-] Region from 0x7fef04000000 to 0x7fef04800000 (rw-, max rwx;)
-     [-] Region from 0x7fef04800000 to 0x7fef04900000 (rw-, max rwx;)
-     [-] Region from 0x7fef04900000 to 0x7fef04a00000 (rw-, max rwx;)
-     ... <snip> ...
-     [-] Region from 0x7fff80000000 to 0x7fffc0000000 (r--, max rwx;)
-     [-] Region from 0x7fffc0000000 to 0x7fffffe00000 (r--, max rwx;)
-     [-] Region from 0x7fffffe00000 to 0x7fffffe01000 (r--, max r--;)
-     [-] Region from 0x7fffffe6e000 to 0x7fffffe6f000 (r-x, max r-x;)
     
     [+] Find MALLOC_TINY heap range (guess)
      [-] range 0x7fef03400000-0x7fef03500000
@@ -96,8 +48,18 @@ The volafox, memory forensic toolit for Mac OS X has been written in Python as a
     [*] master key candidate: 21BB87A2EB24FD663A0AC95E16BEEBF7728036994C0EEC19
     [*] master key candidate: 05556393141766259F62053793F62098D21176BAAA540927
     [*] master key candidate: 903C49F0FE0700C0133749F0FE0700404158544D00000000
-
-    $ python chainbreaker.py -i ~/Desktop/show/login.keychain -k 26C80BE3346E720DAA10620F2C9C8AD726CFCE2B818942F9
+    $ python chainbreaker.py -h
+    usage: chainbreaker.py [-h] -f FILE (-k KEY | -p PASSWORD)
+    
+    Tool for OS X Keychain Analysis by @n0fate
+    
+    optional arguments:
+      -h, --help            show this help message and exit
+      -f FILE, --file FILE  Keychain file(*.keychain)
+      -k KEY, --key KEY     Masterkey candidate
+      -p PASSWORD, --password PASSWORD
+                            User Password 
+    $ python chainbreaker.py -f ~/Desktop/show/login.keychain -k 26C80BE3346E720DAA10620F2C9C8AD726CFCE2B818942F9
      [-] DB Key
     00000000:  05 55 63 93 14 17 66 25  9F 62 05 37 93 F6 20 98  .Uc...f%.b.7.. .
     00000010:  D2 11 76 BA AA 54 09 27                                                   ..v..T.'
@@ -146,12 +108,12 @@ The volafox, memory forensic toolit for Mac OS X has been written in Python as a
      [-] Password
     00000000:  ** ** ** ** ** ** ** **  ** ** ** **              ************
 
+If you have memory image only, you can dump a keychain file on it and decrypt keychain contents as [link](https://gist.github.com/n0fate/790428d408d54b910956)
+
 
 ## Contacts
-
 chainbreaker was written by [n0fate](http://twitter.com/n0fate)
-
-email address can be found from source code.
+E-Mail address can be found from source code.
 
 ## License
 [GNU GPL v2](http://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
