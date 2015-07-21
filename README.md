@@ -9,7 +9,7 @@ Snow Leopard, Lion, Mountain Lion, Mavericks, Yosemite, El Capitan(Beta)
 
 ## Target Keychain file
 * User Keychain(~/Users/[username]/Library/Keychains/login.keychain) : It has user id/password about installed application, ssh/vpn, mail, contacts, calendar and so on. It has key for call history decryption too.
-* System Keychain(/System/Library/Keychains/System.keychain) : It has WiFi password registered by local machine and several certifications and public/private keys. (Detailed Info : http://forensic.n0fate.com/2014/09/system-keychain-analysis/)
+* System Keychain(/Library/Keychains/System.keychain) : It has WiFi password registered by local machine and several certifications and public/private keys. (Detailed Info : http://forensic.n0fate.com/2014/09/system-keychain-analysis/)
 
 ##How to use:
 
