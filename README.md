@@ -15,7 +15,9 @@ Snow Leopard, Lion, Mountain Lion, Mavericks, Yosemite, El Capitan(Beta)
 
 If you have only keychain file and password, command as follow:
 
-    # python chainbreaker.py -i [keychain file] -p [user password]
+    $ python chainbreaker.py 
+    usage: chainbreaker.py [-h] -f FILE (-k KEY | -p PASSWORD)
+    chainbreaker.py: error: argument -f/--file is required
 
 
 If you have memory image, you can extract master key candidates using volafox project. The volafox, memory forensic toolit for Mac OS X has been written in Python as a cross platform open source project. Of course, you can dump it using volatility.
@@ -23,7 +25,7 @@ If you have memory image, you can extract master key candidates using volafox pr
     $ python volafox.py -i [memory image] -o keychaindump
     ....
     ....
-    $ python chainbreaker.py -i [keychain file] -k [master key]
+    $ python chainbreaker.py -f [keychain file] -k [master key]
 
 
 ## Example
