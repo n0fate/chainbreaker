@@ -548,9 +548,9 @@ class KeyChain():
 
         BASE_ADDR = sizeof(_APPL_DB_HEADER) + base_addr + offset
 
-        RecordMeta = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR+sizeof(_INTERNET_PW_HEADER)], _INTERNET_PW_HEADER)
+        RecordMeta = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR+sizeof(_APPLE_SHARE_HEADER)], _APPLE_SHARE_HEADER)
 
-        Buffer = self.fbuf[BASE_ADDR + sizeof(_INTERNET_PW_HEADER):BASE_ADDR + RecordMeta.RecordSize]
+        Buffer = self.fbuf[BASE_ADDR + sizeof(_APPLE_SHARE_HEADER):BASE_ADDR + RecordMeta.RecordSize]
 
         if RecordMeta.SSGPArea != 0:
             record.append(Buffer[:RecordMeta.SSGPArea])
