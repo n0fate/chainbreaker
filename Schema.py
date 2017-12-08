@@ -219,6 +219,7 @@ STD_APPLE_ADDIN_MODULE = {
 
 SECURE_STORAGE_GROUP = 'ssgp'
 
+# SecAuthenticationType
 AUTH_TYPE = {
     'ntlm': 'kSecAuthenticationTypeNTLM',
     'msna': 'kSecAuthenticationTypeMSN',
@@ -232,6 +233,7 @@ AUTH_TYPE = {
     '\x00\x00\x00\x00': 'kSecAuthenticationTypeAny'
 }
 
+# SecProtocolType
 PROTOCOL_TYPE = {
     'ftp ': 'kSecProtocolTypeFTP',
     'ftpa': 'kSecProtocolTypeFTPAccount',

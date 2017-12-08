@@ -37,8 +37,6 @@ SIZEOFKEYCHAINTIME = 16
 
 KEYCHAIN_SIGNATURE = "kych"
 
-DBBLOB_SIGNATURE = unhexlify('fade0711')
-
 BLOCKSIZE = 8
 KEYLEN = 24
 
@@ -62,14 +60,6 @@ class _KEY_BLOB_REC_HEADER(BigEndianStructure):
         ("RecordSize", c_uint),
         ("RecordCount", c_uint),
         ("Dummy", c_char*0x7C),
-    ]
-
-class _KEY_BLOB_RECORD(BigEndianStructure):
-    _fields_ = [
-        ("Signature", c_uint),
-        ("Version", c_uint),
-        ("CipherOffset", c_uint),
-        ("TotalLength", c_uint)
     ]
 
 class _GENERIC_PW_HEADER(BigEndianStructure):
@@ -181,39 +171,39 @@ class _X509_CERT_HEADER(BigEndianStructure):
 # http://www.opensource.apple.com/source/libsecurity_keychain/libsecurity_keychain-36940/lib/SecKey.h
 class _SECKEY_HEADER(BigEndianStructure):
     _fields_ = [
-        ("RecordSize", c_uint),
-        ("RecordNumber", c_uint),
-        ("Unknown1", c_uint),
-        ("Unknown2", c_uint),
-        ("BlobSize", c_uint),
-        ("Unknown3", c_uint),
-        ("KeyClass", c_uint),
-        ("PrintName", c_uint),
-        ("Alias", c_uint),
-        ("Permanent", c_uint),
-        ("Private", c_uint),
-        ("Modifiable", c_uint),
-        ("Label", c_uint),
-        ("ApplicationTag", c_uint),
-        ("KeyCreator", c_uint),
-        ("KeyType", c_uint),
-        ("KeySizeInBits", c_uint),
-        ("EffectiveKeySize", c_uint),
-        ("StartDate", c_uint),
-        ("EndDate", c_uint),
-        ("Sensitive", c_uint),
-        ("AlwaysSensitive", c_uint),
-        ("Extractable", c_uint),
-        ("NeverExtractable", c_uint),
-        ("Encrypt", c_uint),
-        ("Decrypt", c_uint),
-        ("Derive", c_uint),
-        ("Sign", c_uint),
-        ("Verify", c_uint),
-        ("SignRecover", c_uint),
-        ("VerifyRecover", c_uint),
-        ("Wrap", c_uint),
-        ("Wrap", c_uint)
+        ("RecordSize", c_uint32),
+        ("RecordNumber", c_uint32),
+        ("Unknown1", c_uint32),
+        ("Unknown2", c_uint32),
+        ("BlobSize", c_uint32),
+        ("Unknown3", c_uint32),
+        ("KeyClass", c_uint32),
+        ("PrintName", c_uint32),
+        ("Alias", c_uint32),
+        ("Permanent", c_uint32),
+        ("Private", c_uint32),
+        ("Modifiable", c_uint32),
+        ("Label", c_uint32),
+        ("ApplicationTag", c_uint32),
+        ("KeyCreator", c_uint32),
+        ("KeyType", c_uint32),
+        ("KeySizeInBits", c_uint32),
+        ("EffectiveKeySize", c_uint32),
+        ("StartDate", c_uint32),
+        ("EndDate", c_uint32),
+        ("Sensitive", c_uint32),
+        ("AlwaysSensitive", c_uint32),
+        ("Extractable", c_uint32),
+        ("NeverExtractable", c_uint32),
+        ("Encrypt", c_uint32),
+        ("Decrypt", c_uint32),
+        ("Derive", c_uint32),
+        ("Sign", c_uint32),
+        ("Verify", c_uint32),
+        ("SignRecover", c_uint32),
+        ("VerifyRecover", c_uint32),
+        ("Wrap", c_uint32),
+        ("UnWrap", c_uint32)
     ]
 
 class _TABLE_HEADER(BigEndianStructure):
@@ -225,7 +215,6 @@ class _TABLE_HEADER(BigEndianStructure):
         ("IndexesOffset", c_uint),
         ("FreeListHead", c_uint),
         ("RecordNumbersCount", c_uint),
-        #("RecordNumbers", c_uint)
     ]
 
 class _SCHEMA_INFO_RECORD(BigEndianStructure):
@@ -242,12 +231,45 @@ class _SCHEMA_INFO_RECORD(BigEndianStructure):
         ("Data", c_uint)
     ]
 
-class _ENCRYPTED_BLOB_METADATA(BigEndianStructure):
+class _COMMON_BLOB(BigEndianStructure):
     _fields_ = [
-        ("MagicNumber", c_uint),
-        ("Unknown", c_uint),
-        ("StartOffset", c_uint),
-        ("EndOffset", c_uint)
+        ("magic", c_uint32),
+        ("blobVersion", c_uint32)
+    ]
+
+# _ENCRYPTED_BLOB_METADATA
+class _KEY_BLOB(BigEndianStructure):
+    _fields_ = [
+        ("CommonBlob", _COMMON_BLOB),
+        ("startCryptoBlob", c_uint32),
+        ("totalLength", c_uint32),
+        ("iv", c_ubyte*8)
+    ]
+
+class _DB_PARAMETERS(BigEndianStructure):
+    _fields_ = [
+        ("idleTimeout", c_uint32),  # uint32
+        ("lockOnSleep", c_uint32)   #uint8
+    ]
+
+class _DB_BLOB(BigEndianStructure):
+    _fields_ = [
+        ("CommonBlob", _COMMON_BLOB),
+        ("startCryptoBlob", c_uint32),
+        ("totalLength", c_uint32),
+        ("randomSignature", c_ubyte*16),
+        ("sequence", c_uint32),
+        ("params", _DB_PARAMETERS),
+        ("salt", c_ubyte*20),
+        ("iv", c_ubyte*8),
+        ("blobSignature", c_ubyte*20)
+    ]
+
+class _SSGP(BigEndianStructure):
+    _fields_ = [
+        ("magic", c_char*4),
+        ("label", c_ubyte*16),
+        ("iv", c_ubyte*8)
     ]
 
 def _memcpy(buf, fmt):
@@ -326,7 +348,6 @@ class KeyChain():
         return len(recordList), TableDic
 
     def getSchemaInfoRecord(self, base_addr, offset):
-
         record_meta = []
         record = []
 
@@ -351,27 +372,23 @@ class KeyChain():
 
         KeyBlobRecHeader = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR+sizeof(_KEY_BLOB_REC_HEADER)], _KEY_BLOB_REC_HEADER)
 
-
-        # record_meta[0] => record size
         record = self.fbuf[BASE_ADDR + sizeof(_KEY_BLOB_REC_HEADER):BASE_ADDR + KeyBlobRecHeader.RecordSize]  # password data area
 
-        KeyBlobRecord = _memcpy(record[:sizeof(_KEY_BLOB_RECORD)], _KEY_BLOB_RECORD)
+        KeyBlobRecord = _memcpy(record[:+sizeof(_KEY_BLOB)], _KEY_BLOB)
+        #hexdump(KeyBlobRecord.iv)
 
-        if SECURE_STORAGE_GROUP != str(record[KeyBlobRecord.TotalLength + 8:KeyBlobRecord.TotalLength + 8 + 4]):
-            #print 'not ssgp %s'%str(record[KeyBlobRecord.TotalLength + 8:KeyBlobRecord.TotalLength + 8 + 4])
-            #exit()
+        if SECURE_STORAGE_GROUP != str(record[KeyBlobRecord.totalLength + 8:KeyBlobRecord.totalLength + 8 + 4]):
             return '', '', '', 1
 
-        CipherLen = KeyBlobRecord.TotalLength - KeyBlobRecord.CipherOffset
+        CipherLen = KeyBlobRecord.totalLength - KeyBlobRecord.startCryptoBlob
         if CipherLen % BLOCKSIZE != 0:
             print "Bad ciphertext len"
+            return '', '', '', 1
 
-        iv = record[16:24]
-
-        ciphertext = record[KeyBlobRecord.CipherOffset:KeyBlobRecord.TotalLength]
+        ciphertext = record[KeyBlobRecord.startCryptoBlob:KeyBlobRecord.totalLength]
 
         # match data, keyblob_ciphertext, Initial Vector, success
-        return record[KeyBlobRecord.TotalLength + 8:KeyBlobRecord.TotalLength + 8 + 20], ciphertext, iv, 0
+        return record[KeyBlobRecord.totalLength + 8:KeyBlobRecord.totalLength + 8 + 20], ciphertext, KeyBlobRecord.iv, 0
 
 
     def getGenericPWRecord(self, base_addr, offset):
@@ -492,18 +509,13 @@ class KeyChain():
         return record
 
     def getEncryptedDatainBlob(self, BlobBuf):
-        magicNumber = 0xFADE0711
+        KeyBlob = _memcpy(BlobBuf[:sizeof(_KEY_BLOB)], _KEY_BLOB)
 
-        IVSize = 8
-
-        EncryptedBlobMeta = _memcpy(BlobBuf[:sizeof(_ENCRYPTED_BLOB_METADATA)], _ENCRYPTED_BLOB_METADATA)
-
-        if EncryptedBlobMeta.MagicNumber != magicNumber:
+        if KeyBlob.CommonBlob.magic != 0xFADE0711:
             return '', ''
 
-        KeyData = BlobBuf[EncryptedBlobMeta.StartOffset:EncryptedBlobMeta.EndOffset]
-        IV = BlobBuf[sizeof(_ENCRYPTED_BLOB_METADATA):sizeof(_ENCRYPTED_BLOB_METADATA)+IVSize]
-        return IV, KeyData    # IV, Encrypted Data
+        KeyData = BlobBuf[KeyBlob.startCryptoBlob:KeyBlob.totalLength]
+        return KeyBlob.iv, KeyData    # IV, Encrypted Data
 
     def getKeychainTime(self, BASE_ADDR, pCol):
         if pCol <= 0:
@@ -538,7 +550,7 @@ class KeyChain():
         try:
             data = struct.unpack(unpack_value, self.fbuf[BASE_ADDR + pCol + 4:BASE_ADDR + pCol + 4 + real_str_len])[0]
         except struct.error:
-            print 'Length is too long : %d'%real_str_len
+            #print 'Length is too long : %d'%real_str_len
             return ''
         return data
 
@@ -583,10 +595,9 @@ class KeyChain():
     ## decrypted dbblob area
     ## Documents : http://www.opensource.apple.com/source/securityd/securityd-55137.1/doc/BLOBFORMAT
     ## http://www.opensource.apple.com/source/libsecurity_keychain/libsecurity_keychain-36620/lib/StorageManager.cpp
-    def DBBlobDecryption(self, securestoragegroup, dbkey):
-        iv = securestoragegroup[20:28]
-
-        plain = kcdecrypt(dbkey, iv, securestoragegroup[28:])
+    def SSGPDecryption(self, ssgp, dbkey):
+        SSGP = _memcpy(ssgp, _SSGP)
+        plain = kcdecrypt(dbkey, SSGP.iv, ssgp[sizeof(_SSGP):])
 
         return plain
 
@@ -625,7 +636,7 @@ class KeyChain():
         plain = kcdecrypt(dbkey, magicCmsIV, encryptedblob)
 
         if plain.__len__() == 0:
-            return ''
+            return '', ''
 
         # now we handle the unwrapping. we need to take the first 32 bytes,
         # and reverse them.
@@ -635,8 +646,7 @@ class KeyChain():
 
         # now the real key gets found. */
         plain = kcdecrypt(dbkey, iv, revplain)
-
-        #hexdump(plain)
+        
         Keyname = plain[:12]    # Copied Buffer when user click on right and copy a key on Keychain Access
         keyblob = plain[12:]
 
@@ -646,12 +656,9 @@ class KeyChain():
     def generateMasterKey(self, pw, symmetrickey_offset):
 
         base_addr = sizeof(_APPL_DB_HEADER) + symmetrickey_offset + 0x38  # header
+        dbblob = _memcpy(self.fbuf[base_addr:base_addr+sizeof(_DB_BLOB)], _DB_BLOB)
 
-        # salt
-        SALTLEN = 20
-        salt = self.fbuf[base_addr + 44:base_addr + 44 + SALTLEN]
-
-        masterkey = pbkdf2(pw, salt, 1000, KEYLEN)
+        masterkey = pbkdf2(pw, str(bytearray(dbblob.salt)), 1000, KEYLEN)
         return masterkey
 
     ## find DBBlob and extract Wrapping key
@@ -659,26 +666,18 @@ class KeyChain():
 
         base_addr = sizeof(_APPL_DB_HEADER) + symmetrickey_offset + 0x38
 
-        # startCryptoBlob
-        cipher_text_offset = struct.unpack('>I', self.fbuf[base_addr + 8:base_addr + 8 + ATOM_SIZE])[0]
-
-        # totalength
-        totallength = struct.unpack('>I', self.fbuf[base_addr + 12:base_addr + 12 + ATOM_SIZE])[0]
-
-        # IV
-        IVLEN = 8
-        iv = self.fbuf[base_addr + 64:base_addr + 64 + IVLEN]
+        dbblob = _memcpy(self.fbuf[base_addr:base_addr+sizeof(_DB_BLOB)], _DB_BLOB)
 
         # get cipher text area
-        ciphertext = self.fbuf[base_addr + cipher_text_offset:base_addr + totallength]
+        ciphertext = self.fbuf[base_addr + dbblob.startCryptoBlob:base_addr + dbblob.totalLength]
 
         # decrypt the key
-        plain = kcdecrypt(master, iv, ciphertext)
+        plain = kcdecrypt(master, dbblob.iv, ciphertext)
 
-        if plain.__len__() == 0:
+        if plain.__len__() < KEYLEN:
             return ''
 
-        dbkey = plain[0:KEYLEN]
+        dbkey = plain[:KEYLEN]
 
         # return encrypted wrapping key
         return dbkey
@@ -688,12 +687,12 @@ class KeyChain():
 def kcdecrypt(key, iv, data):
     if len(data) == 0:
         #print>>stderr, "FileSize is 0"
-        return data
+        return ''
 
     if len(data) % BLOCKSIZE != 0:
-        return data
+        return ''
 
-    cipher = triple_des(key, CBC, iv)
+    cipher = triple_des(key, CBC, str(bytearray(iv)))
     # the line below is for pycrypto instead
     #cipher = DES3.new( key, DES3.MODE_CBC, iv )
 
@@ -759,7 +758,11 @@ def main():
         dbkey = keychain.findWrappingKey(unhexlify(args.key[0]), TableList[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
 
     else:
-        print '[!] ERROR: password or master key candidate'
+        print '[!] ERROR: password or master key candidate is invalid'
+        exit()
+    
+    if len(dbkey) == 0:
+        print '[!] ERROR: password or master key candidate is invalid'
         exit()
 
     # DEBUG
@@ -788,7 +791,7 @@ def main():
             print '[+] Generic Password Record'
             try:
                 real_key = key_list[record[0][0:20]]
-                passwd = keychain.DBBlobDecryption(record[0], real_key)
+                passwd = keychain.SSGPDecryption(record[0], real_key)
             except KeyError:
                 passwd = ''
             print ' [-] Create DateTime: %s' % record[1]  # 16byte string
@@ -816,7 +819,7 @@ def main():
             print '[+] Internet Record'
             try:
                 real_key = key_list[record[0][0:20]]
-                passwd = keychain.DBBlobDecryption(record[0], real_key)
+                passwd = keychain.SSGPDecryption(record[0], real_key)
             except KeyError:
                 passwd = ''
             print ' [-] Create DateTime: %s' % record[1]  # 16byte string
@@ -857,7 +860,7 @@ def main():
             print '[+] AppleShare Record (no more used OS X)'
             try:
                 real_key = key_list[record[0][0:20]]
-                passwd = keychain.DBBlobDecryption(record[0], real_key)
+                passwd = keychain.SSGPDecryption(record[0], real_key)
             except KeyError:
                 passwd = ''
             #print ''
@@ -892,6 +895,7 @@ def main():
 
         for x509Cert in x509CertList:
             record = keychain.getx509Record(TableList[tableEnum[CSSM_DL_DB_RECORD_X509_CERTIFICATE]], x509Cert)
+            print '[+] Certificate'
             print ' [-] Cert Type: %s' %CERT_TYPE[record[0]]
             print ' [-] Cert Encoding: %s' %CERT_ENCODING[record[1]]
             print ' [-] PrintName : %s' % record[2]
@@ -931,6 +935,7 @@ def main():
             print ' [-] CSSM Type : %s' %STD_APPLE_ADDIN_MODULE[record[8]]
             print ' [-] Public Key'
             hexdump(record[10])
+            print ''
 
     except KeyError:
         print '[!] Public Key Table is not available'
@@ -956,6 +961,7 @@ def main():
             hexdump(keyname)
             print ' [-] Decrypted Private Key'
             hexdump(privatekey)
+            print ''
 
     except KeyError:
         print '[!] Private Key Table is not available'
