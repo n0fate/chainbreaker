@@ -216,7 +216,7 @@ class _TABLE_HEADER(BigEndianStructure):
         ("FreeListHead", c_uint),
         ("RecordNumbersCount", c_uint),
     ]
-
+"""
 class _SCHEMA_INFO_RECORD(BigEndianStructure):
     _fields_ = [
         ("RecordSize", c_uint),
@@ -230,7 +230,7 @@ class _SCHEMA_INFO_RECORD(BigEndianStructure):
         ("DataSize", c_uint),
         ("Data", c_uint)
     ]
-
+"""
 class _COMMON_BLOB(BigEndianStructure):
     _fields_ = [
         ("magic", c_uint32),
@@ -346,25 +346,6 @@ class KeyChain():
             TableDic[tableMeta.TableId] = count    # extract valid table list
 
         return len(recordList), TableDic
-
-    def getSchemaInfoRecord(self, base_addr, offset):
-        record_meta = []
-        record = []
-
-        BASE_ADDR = sizeof(_APPL_DB_HEADER) + base_addr + offset
-
-        #print BASE_ADDR
-
-        RecordMetadata = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR+sizeof(_SCHEMA_INFO_RECORD)], _SCHEMA_INFO_RECORD)
-
-        data = self.fbuf[BASE_ADDR + 40:BASE_ADDR + 40 + RecordMetadata.DataSize]
-
-        for record_element in RecordMetadata:
-            record.append(record_element)
-
-        record.append(data)
-
-        return record
 
     def getKeyblobRecord(self, base_addr, offset):
 
