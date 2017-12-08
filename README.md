@@ -5,7 +5,7 @@ The chainbreaker can extract user credential in a Keychain file with Master Key 
 Master Key candidates can be extracted from [volafox](https://github.com/n0fate/volafox) or [volatility](https://github.com/volatilityfoundation/volatility) keychaindump module.
 
 ## Supported OS
-Snow Leopard, Lion, Mountain Lion, Mavericks, Yosemite, El Capitan(Beta)
+Snow Leopard, Lion, Mountain Lion, Mavericks, Yosemite, El Capitan, (High) Sierra
 
 ## Target Keychain file
 * User Keychain(~/Users/[username]/Library/Keychains/login.keychain) : It has user id/password about installed application, ssh/vpn, mail, contacts, calendar and so on. It has key for call history decryption too.
