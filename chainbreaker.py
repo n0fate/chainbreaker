@@ -272,6 +272,14 @@ class _SSGP(BigEndianStructure):
         ("iv", c_ubyte*8)
     ]
 
+# /var/db/SystemKey contains the master key for /Library/Keychains/System.keychain
+class _UNLOCK_BLOB(BigEndianStructure):
+    _fields_ = [
+        ("CommonBlob", _COMMON_BLOB),
+        ("masterKey", c_char*24),
+        ("blobSignature", c_ubyte * 16)
+    ]
+
 def _memcpy(buf, fmt):
     return cast(c_char_p(buf), POINTER(fmt)).contents
 
@@ -701,8 +709,9 @@ def main():
     parser.add_argument('-f', '--file', nargs=1, help='Keychain file(*.keychain)', required=True)
     #parser.add_argument('-x', '--exportfile', nargs=1, help='Export a filename (SQLite, optional)', required=False)
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-k', '--key', nargs=1, help='Masterkey candidate', required=False)
-    group.add_argument('-p', '--password', nargs=1, help='User Password', required=False)
+    group.add_argument('-k', '--key', nargs=1, help='Keychain Masterkey', required=False)
+    group.add_argument('-u', '--unlockfile', nargs=1, help='System.keychain unlock file (/var/db/SystemKey)', required=False)
+    group.add_argument('-p', '--password', nargs=1, help='Keychain Password', required=False)
     args = parser.parse_args()
 
     if os.path.exists(args.file[0]) is False:
@@ -738,6 +747,11 @@ def main():
     elif args.key is not None:
         dbkey = keychain.findWrappingKey(unhexlify(args.key[0]), TableList[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
 
+    elif args.unlockfile is not None:
+        with open(args.unlockfile[0], mode='rb') as uf:
+            filecontent = uf.read()
+        unlockkeyblob = _memcpy(filecontent, _UNLOCK_BLOB)
+        dbkey = keychain.findWrappingKey(unlockkeyblob.masterKey, TableList[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
     else:
         print '[!] ERROR: password or master key candidate is invalid'
         exit()
