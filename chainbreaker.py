@@ -19,6 +19,7 @@
 #
 
 import argparse
+import base64
 import os
 from sys import exit
 import struct
@@ -695,6 +696,23 @@ def kcdecrypt(key, iv, data):
     return plain
 
 
+def print_data_in_pem(data, label):
+    """
+    Output "data" to standard output in PEM encoding (rfc7468)
+
+    :param data: data to output in PEM encoding
+    :param label: type of data
+    """
+    print '-----BEGIN %s-----' % label
+    b64string = base64.standard_b64encode(data)
+    while len(b64string) > 64:
+        print b64string[:64]
+        b64string = b64string[64:]
+    if len(b64string):
+        print b64string
+    print '-----END %s-----' % label
+
+
 def main():
 
     parser = argparse.ArgumentParser(description='Tool for OS X Keychain Analysis by @n0fate')
@@ -777,13 +795,13 @@ def main():
                 passwd = ''
             print ' [-] Create DateTime: %s' % record[1]  # 16byte string
             print ' [-] Last Modified DateTime: %s' % record[2]  # 16byte string
-            print ' [-] Description : %s' % record[3]
+            print ' [-] Description : %s' % record[3].rstrip('\0')
             print ' [-] Creator : %s' % record[4]
             print ' [-] Type : %s' % record[5]
-            print ' [-] PrintName : %s' % record[6]
-            print ' [-] Alias : %s' % record[7]
-            print ' [-] Account : %s' % record[8]
-            print ' [-] Service : %s' % record[9]
+            print ' [-] PrintName : %s' % record[6].rstrip('\0')
+            print ' [-] Alias : %s' % record[7].rstrip('\0')
+            print ' [-] Account : %s' % record[8].rstrip('\0')
+            print ' [-] Service : %s' % record[9].rstrip('\0')
             print ' [-] Password'
             hexdump(passwd)
             print ''
@@ -805,11 +823,11 @@ def main():
                 passwd = ''
             print ' [-] Create DateTime: %s' % record[1]  # 16byte string
             print ' [-] Last Modified DateTime: %s' % record[2]  # 16byte string
-            print ' [-] Description : %s' % record[3]
+            print ' [-] Description : %s' % record[3].rstrip('\0')
             print ' [-] Comment : %s' % record[4]
             print ' [-] Creator : %s' % record[5]
             print ' [-] Type : %s' % record[6]
-            print ' [-] PrintName : %s' % record[7]
+            print ' [-] PrintName : %s' % record[7].rstrip('\0')
             print ' [-] Alias : %s' % record[8]
             print ' [-] Protected : %s' % record[9]
             print ' [-] Account : %s' % record[10]
@@ -847,14 +865,14 @@ def main():
             #print ''
             print ' [-] Create DateTime: %s' % record[1]  # 16byte string
             print ' [-] Last Modified DateTime: %s' % record[2]  # 16byte string
-            print ' [-] Description : %s' % record[3]
-            print ' [-] Comment : %s' % record[4]
+            print ' [-] Description : %s' % record[3].rstrip('\0')
+            print ' [-] Comment : %s' % record[4].rstrip('\0')
             print ' [-] Creator : %s' % record[5]
             print ' [-] Type : %s' % record[6]
-            print ' [-] PrintName : %s' % record[7]
+            print ' [-] PrintName : %s' % record[7].rstrip('\0')
             print ' [-] Alias : %s' % record[8]
             print ' [-] Protected : %s' % record[9]
-            print ' [-] Account : %s' % record[10]
+            print ' [-] Account : %s' % record[10].rstrip('\0')
             print ' [-] Volume : %s' % record[11]
             print ' [-] Server : %s' % record[12]
             try:
@@ -877,13 +895,13 @@ def main():
         for x509Cert in x509CertList:
             record = keychain.getx509Record(TableList[tableEnum[CSSM_DL_DB_RECORD_X509_CERTIFICATE]], x509Cert)
             print '[+] Certificate'
-            print ' [-] Cert Type: %s' %CERT_TYPE[record[0]]
-            print ' [-] Cert Encoding: %s' %CERT_ENCODING[record[1]]
-            print ' [-] PrintName : %s' % record[2]
-            print ' [-] Alias : %s' % record[3]
-            print ' [-] Subject'
+            print ' [-] Cert Type: %s' % CERT_TYPE[record[0]]
+            print ' [-] Cert Encoding: %s' % CERT_ENCODING[record[1]]
+            print ' [-] PrintName : %s' % record[2].rstrip('\0')
+            print ' [-] Alias : %s' % record[3].rstrip('\0')
+            print ' [-] Subject (ASN1 encoded)'
             hexdump(record[4])
-            print ' [-] Issuer :'
+            print ' [-] Issuer (ASN1 encoded):'
             hexdump(record[5])
             print ' [-] SerialNumber'
             hexdump(record[6])
@@ -892,7 +910,11 @@ def main():
             print ' [-] Public Key Hash'
             hexdump(record[8])
             print ' [-] Certificate'
-            hexdump(record[9])
+            if CERT_ENCODING[record[1]] == 'CSSM_CERT_ENCODING_DER':
+                # convert to PEM for easy cut/copy/paste to openssl command line
+                print_data_in_pem(record[9], 'CERTIFICATE')
+            else:
+                hexdump(record[9])
             print ''
 
     except KeyError:
@@ -904,18 +926,22 @@ def main():
         for PublicKey in PublicKeyList:
             record = keychain.getKeyRecord(TableList[tableEnum[CSSM_DL_DB_RECORD_PUBLIC_KEY]], PublicKey)
             print '[+] Public Key Record'
-            print ' [-] PrintName: %s' %record[0]
+            print ' [-] PrintName: %s' % record[0].rstrip('\0')
             print ' [-] Label'
             hexdump(record[1])
-            print ' [-] Key Class : %s'%KEY_TYPE[record[2]]
-            print ' [-] Private : %d'%record[3]
-            print ' [-] Key Type : %s'%CSSM_ALGORITHMS[record[4]]
-            print ' [-] Key Size : %d bits'%record[5]
-            print ' [-] Effective Key Size : %d bits'%record[6]
-            print ' [-] Extracted : %d'%record[7]
-            print ' [-] CSSM Type : %s' %STD_APPLE_ADDIN_MODULE[record[8]]
+            print ' [-] Key Class : %s' % KEY_TYPE[record[2]]
+            print ' [-] Private : %d' % record[3]
+            print ' [-] Key Type : %s' % CSSM_ALGORITHMS[record[4]]
+            print ' [-] Key Size : %d bits' % record[5]
+            print ' [-] Effective Key Size : %d bits' % record[6]
+            print ' [-] Extracted : %d' % record[7]
+            print ' [-] CSSM Type : %s' % STD_APPLE_ADDIN_MODULE[record[8]]
             print ' [-] Public Key'
-            hexdump(record[10])
+            if CSSM_ALGORITHMS[record[4]] == 'CSSM_ALGID_RSA':
+                # convert to PEM for easy cut/copy/paste to openssl command line
+                print_data_in_pem(record[10], 'PUBLIC_KEY')
+            else:
+                hexdump(record[10])
             print ''
 
     except KeyError:
@@ -927,7 +953,7 @@ def main():
         for PrivateKey in PrivateKeyList:
             record = keychain.getKeyRecord(TableList[tableEnum[CSSM_DL_DB_RECORD_PRIVATE_KEY]], PrivateKey)
             print '[+] Private Key Record'
-            print ' [-] PrintName: %s' % record[0]
+            print ' [-] PrintName: %s' % record[0].rstrip('\0')
             print ' [-] Label'
             hexdump(record[1])
             print ' [-] Key Class : %s' % KEY_TYPE[record[2]]
@@ -941,7 +967,11 @@ def main():
             print ' [-] Key Name'
             hexdump(keyname)
             print ' [-] Decrypted Private Key'
-            hexdump(privatekey)
+            if CSSM_ALGORITHMS[record[4]] == 'CSSM_ALGID_RSA':
+                # convert to PEM for easy cut/copy/paste to openssl command line
+                print_data_in_pem(privatekey, 'PRIVATE_KEY')
+            else:
+                hexdump(privatekey)
             print ''
 
     except KeyError:
