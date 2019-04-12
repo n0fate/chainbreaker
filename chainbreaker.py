@@ -24,13 +24,15 @@ from sys import exit
 import struct
 from binascii import unhexlify
 import datetime
-from hexdump import hexdump 
+from hexdump import hexdump
 
 from pbkdf2 import pbkdf2
 
 from pyDes import triple_des, CBC
 from ctypes import *
 from Schema import *
+
+from validator import Validator
 
 ATOM_SIZE = 4
 SIZEOFKEYCHAINTIME = 16
@@ -40,14 +42,16 @@ KEYCHAIN_SIGNATURE = "kych"
 BLOCKSIZE = 8
 KEYLEN = 24
 
+
 class _APPL_DB_HEADER(BigEndianStructure):
     _fields_ = [
-        ("Signature", c_char*4),
+        ("Signature", c_char * 4),
         ("Version", c_int),
         ("HeaderSize", c_int),
         ("SchemaOffset", c_int),
         ("AuthOffset", c_int)
     ]
+
 
 class _APPL_DB_SCHEMA(BigEndianStructure):
     _fields_ = [
@@ -55,12 +59,14 @@ class _APPL_DB_SCHEMA(BigEndianStructure):
         ("TableCount", c_int)
     ]
 
+
 class _KEY_BLOB_REC_HEADER(BigEndianStructure):
     _fields_ = [
         ("RecordSize", c_uint),
         ("RecordCount", c_uint),
-        ("Dummy", c_char*0x7C),
+        ("Dummy", c_char * 0x7C),
     ]
+
 
 class _GENERIC_PW_HEADER(BigEndianStructure):
     _fields_ = [
@@ -87,6 +93,7 @@ class _GENERIC_PW_HEADER(BigEndianStructure):
         ("Service", c_uint),
         ("Generic", c_uint)
     ]
+
 
 class _APPLE_SHARE_HEADER(BigEndianStructure):
     _fields_ = [
@@ -118,6 +125,7 @@ class _APPLE_SHARE_HEADER(BigEndianStructure):
         ("Signature", c_uint)
     ]
 
+
 class _INTERNET_PW_HEADER(BigEndianStructure):
     _fields_ = [
         ("RecordSize", c_uint),
@@ -148,6 +156,7 @@ class _INTERNET_PW_HEADER(BigEndianStructure):
         ("Path", c_uint)
     ]
 
+
 class _X509_CERT_HEADER(BigEndianStructure):
     _fields_ = [
         ("RecordSize", c_uint),
@@ -166,6 +175,7 @@ class _X509_CERT_HEADER(BigEndianStructure):
         ("SubjectKeyIdentifier", c_uint),
         ("PublicKeyHash", c_uint)
     ]
+
 
 # http://www.opensource.apple.com/source/Security/Security-55179.1/include/security_cdsa_utilities/KeySchema.h
 # http://www.opensource.apple.com/source/libsecurity_keychain/libsecurity_keychain-36940/lib/SecKey.h
@@ -206,6 +216,7 @@ class _SECKEY_HEADER(BigEndianStructure):
         ("UnWrap", c_uint32)
     ]
 
+
 class _TABLE_HEADER(BigEndianStructure):
     _fields_ = [
         ("TableSize", c_uint),
@@ -216,6 +227,8 @@ class _TABLE_HEADER(BigEndianStructure):
         ("FreeListHead", c_uint),
         ("RecordNumbersCount", c_uint),
     ]
+
+
 """
 class _SCHEMA_INFO_RECORD(BigEndianStructure):
     _fields_ = [
@@ -231,11 +244,14 @@ class _SCHEMA_INFO_RECORD(BigEndianStructure):
         ("Data", c_uint)
     ]
 """
+
+
 class _COMMON_BLOB(BigEndianStructure):
     _fields_ = [
         ("magic", c_uint32),
         ("blobVersion", c_uint32)
     ]
+
 
 # _ENCRYPTED_BLOB_METADATA
 class _KEY_BLOB(BigEndianStructure):
@@ -243,33 +259,36 @@ class _KEY_BLOB(BigEndianStructure):
         ("CommonBlob", _COMMON_BLOB),
         ("startCryptoBlob", c_uint32),
         ("totalLength", c_uint32),
-        ("iv", c_ubyte*8)
+        ("iv", c_ubyte * 8)
     ]
+
 
 class _DB_PARAMETERS(BigEndianStructure):
     _fields_ = [
         ("idleTimeout", c_uint32),  # uint32
-        ("lockOnSleep", c_uint32)   #uint8
+        ("lockOnSleep", c_uint32)  # uint8
     ]
+
 
 class _DB_BLOB(BigEndianStructure):
     _fields_ = [
         ("CommonBlob", _COMMON_BLOB),
         ("startCryptoBlob", c_uint32),
         ("totalLength", c_uint32),
-        ("randomSignature", c_ubyte*16),
+        ("randomSignature", c_ubyte * 16),
         ("sequence", c_uint32),
         ("params", _DB_PARAMETERS),
-        ("salt", c_ubyte*20),
-        ("iv", c_ubyte*8),
-        ("blobSignature", c_ubyte*20)
+        ("salt", c_ubyte * 20),
+        ("iv", c_ubyte * 8),
+        ("blobSignature", c_ubyte * 20)
     ]
+
 
 class _SSGP(BigEndianStructure):
     _fields_ = [
-        ("magic", c_char*4),
-        ("label", c_ubyte*16),
-        ("iv", c_ubyte*8)
+        ("magic", c_char * 4),
+        ("label", c_ubyte * 16),
+        ("iv", c_ubyte * 8)
     ]
 
 # /var/db/SystemKey contains the master key for /Library/Keychains/System.keychain
@@ -313,8 +332,8 @@ class KeyChain():
 
     def getSchemaInfo(self, offset):
         table_list = []
-        #schema_info = struct.unpack(APPL_DB_SCHEMA, self.fbuf[offset:offset + APPL_DB_SCHEMA_SIZE])
-        _schemainfo = _memcpy(self.fbuf[offset:offset+sizeof(_APPL_DB_SCHEMA)], _APPL_DB_SCHEMA)
+        # schema_info = struct.unpack(APPL_DB_SCHEMA, self.fbuf[offset:offset + APPL_DB_SCHEMA_SIZE])
+        _schemainfo = _memcpy(self.fbuf[offset:offset + sizeof(_APPL_DB_SCHEMA)], _APPL_DB_SCHEMA)
         for i in xrange(_schemainfo.TableCount):
             BASE_ADDR = sizeof(_APPL_DB_HEADER) + sizeof(_APPL_DB_SCHEMA)
             table_list.append(
@@ -326,7 +345,7 @@ class KeyChain():
         record_list = []
         BASE_ADDR = sizeof(_APPL_DB_HEADER) + offset
 
-        TableMetaData = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR+sizeof(_TABLE_HEADER)], _TABLE_HEADER)
+        TableMetaData = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR + sizeof(_TABLE_HEADER)], _TABLE_HEADER)
 
         RECORD_OFFSET_BASE = BASE_ADDR + sizeof(_TABLE_HEADER)
 
@@ -334,16 +353,16 @@ class KeyChain():
         offset = 0
         while TableMetaData.RecordCount != record_count:
             RecordOffset = struct.unpack('>I', self.fbuf[
-                                                RECORD_OFFSET_BASE + (ATOM_SIZE * offset):RECORD_OFFSET_BASE + (
-                                                    ATOM_SIZE * offset) + ATOM_SIZE])[0]
+                                               RECORD_OFFSET_BASE + (ATOM_SIZE * offset):RECORD_OFFSET_BASE + (
+                                                       ATOM_SIZE * offset) + ATOM_SIZE])[0]
             # if len(record_list) >= 1:
             #     if record_list[len(record_list)-1] >= RecordOffset:
             #         continue
-            if (RecordOffset != 0x00) and (RecordOffset%4 == 0):
+            if (RecordOffset != 0x00) and (RecordOffset % 4 == 0):
                 record_list.append(RecordOffset)
-                #print ' [-] Record Offset: 0x%.8x'%RecordOffset
+                # print ' [-] Record Offset: 0x%.8x'%RecordOffset
                 record_count += 1
-            offset +=1
+            offset += 1
 
         return TableMetaData, record_list
 
@@ -351,7 +370,7 @@ class KeyChain():
         TableDic = {}
         for count in xrange(len(recordList)):
             tableMeta, GenericList = self.getTable(tableList[count])
-            TableDic[tableMeta.TableId] = count    # extract valid table list
+            TableDic[tableMeta.TableId] = count  # extract valid table list
 
         return len(recordList), TableDic
 
@@ -359,12 +378,13 @@ class KeyChain():
 
         BASE_ADDR = sizeof(_APPL_DB_HEADER) + base_addr + offset
 
-        KeyBlobRecHeader = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR+sizeof(_KEY_BLOB_REC_HEADER)], _KEY_BLOB_REC_HEADER)
+        KeyBlobRecHeader = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR + sizeof(_KEY_BLOB_REC_HEADER)], _KEY_BLOB_REC_HEADER)
 
-        record = self.fbuf[BASE_ADDR + sizeof(_KEY_BLOB_REC_HEADER):BASE_ADDR + KeyBlobRecHeader.RecordSize]  # password data area
+        record = self.fbuf[
+                 BASE_ADDR + sizeof(_KEY_BLOB_REC_HEADER):BASE_ADDR + KeyBlobRecHeader.RecordSize]  # password data area
 
         KeyBlobRecord = _memcpy(record[:+sizeof(_KEY_BLOB)], _KEY_BLOB)
-        #hexdump(KeyBlobRecord.iv)
+        # hexdump(KeyBlobRecord.iv)
 
         if SECURE_STORAGE_GROUP != str(record[KeyBlobRecord.totalLength + 8:KeyBlobRecord.totalLength + 8 + 4]):
             return '', '', '', 1
@@ -379,21 +399,21 @@ class KeyChain():
         # match data, keyblob_ciphertext, Initial Vector, success
         return record[KeyBlobRecord.totalLength + 8:KeyBlobRecord.totalLength + 8 + 20], ciphertext, KeyBlobRecord.iv, 0
 
-
     def getGenericPWRecord(self, base_addr, offset):
         record = []
 
         BASE_ADDR = sizeof(_APPL_DB_HEADER) + base_addr + offset
 
-        RecordMeta = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR+sizeof(_GENERIC_PW_HEADER)], _GENERIC_PW_HEADER)
+        RecordMeta = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR + sizeof(_GENERIC_PW_HEADER)], _GENERIC_PW_HEADER)
 
-        Buffer = self.fbuf[BASE_ADDR + sizeof(_GENERIC_PW_HEADER):BASE_ADDR + RecordMeta.RecordSize]  # record_meta[0] => record size
+        Buffer = self.fbuf[BASE_ADDR + sizeof(
+            _GENERIC_PW_HEADER):BASE_ADDR + RecordMeta.RecordSize]  # record_meta[0] => record size
 
         if RecordMeta.SSGPArea != 0:
             record.append(Buffer[:RecordMeta.SSGPArea])
         else:
             record.append('')
-        
+
         record.append(self.getKeychainTime(BASE_ADDR, RecordMeta.CreationDate & 0xFFFFFFFE))
         record.append(self.getKeychainTime(BASE_ADDR, RecordMeta.ModDate & 0xFFFFFFFE))
 
@@ -414,7 +434,7 @@ class KeyChain():
 
         BASE_ADDR = sizeof(_APPL_DB_HEADER) + base_addr + offset
 
-        RecordMeta = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR+sizeof(_INTERNET_PW_HEADER)], _INTERNET_PW_HEADER)
+        RecordMeta = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR + sizeof(_INTERNET_PW_HEADER)], _INTERNET_PW_HEADER)
 
         Buffer = self.fbuf[BASE_ADDR + sizeof(_INTERNET_PW_HEADER):BASE_ADDR + RecordMeta.RecordSize]
 
@@ -445,7 +465,7 @@ class KeyChain():
 
         record.append(self.getInt(BASE_ADDR, RecordMeta.Port & 0xFFFFFFFE))
 
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Path & 0xFFFFFFFE))        
+        record.append(self.getLV(BASE_ADDR, RecordMeta.Path & 0xFFFFFFFE))
 
         return record
 
@@ -454,12 +474,13 @@ class KeyChain():
 
         BASE_ADDR = sizeof(_APPL_DB_HEADER) + base_addr + offset
 
-        RecordMeta = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR+sizeof(_X509_CERT_HEADER)], _X509_CERT_HEADER)
+        RecordMeta = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR + sizeof(_X509_CERT_HEADER)], _X509_CERT_HEADER)
 
-        x509Certificate = self.fbuf[BASE_ADDR + sizeof(_X509_CERT_HEADER):BASE_ADDR + sizeof(_X509_CERT_HEADER) + RecordMeta.CertSize]
+        x509Certificate = self.fbuf[BASE_ADDR + sizeof(_X509_CERT_HEADER):BASE_ADDR + sizeof(
+            _X509_CERT_HEADER) + RecordMeta.CertSize]
 
-        record.append(self.getInt(BASE_ADDR, RecordMeta.CertType & 0xFFFFFFFE))     # Cert Type
-        record.append(self.getInt(BASE_ADDR, RecordMeta.CertEncoding & 0xFFFFFFFE))     # Cert Encoding
+        record.append(self.getInt(BASE_ADDR, RecordMeta.CertType & 0xFFFFFFFE))  # Cert Type
+        record.append(self.getInt(BASE_ADDR, RecordMeta.CertEncoding & 0xFFFFFFFE))  # Cert Encoding
 
         record.append(self.getLV(BASE_ADDR, RecordMeta.PrintName & 0xFFFFFFFE))
         record.append(self.getLV(BASE_ADDR, RecordMeta.Alias & 0xFFFFFFFE))
@@ -477,7 +498,7 @@ class KeyChain():
 
         BASE_ADDR = sizeof(_APPL_DB_HEADER) + base_addr + offset
 
-        RecordMeta = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR+sizeof(_SECKEY_HEADER)], _SECKEY_HEADER)
+        RecordMeta = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR + sizeof(_SECKEY_HEADER)], _SECKEY_HEADER)
 
         KeyBlob = self.fbuf[BASE_ADDR + sizeof(_SECKEY_HEADER):BASE_ADDR + sizeof(_SECKEY_HEADER) + RecordMeta.BlobSize]
 
@@ -504,7 +525,7 @@ class KeyChain():
             return '', ''
 
         KeyData = BlobBuf[KeyBlob.startCryptoBlob:KeyBlob.totalLength]
-        return KeyBlob.iv, KeyData    # IV, Encrypted Data
+        return KeyBlob.iv, KeyData  # IV, Encrypted Data
 
     def getKeychainTime(self, BASE_ADDR, pCol):
         if pCol <= 0:
@@ -539,17 +560,16 @@ class KeyChain():
         try:
             data = struct.unpack(unpack_value, self.fbuf[BASE_ADDR + pCol + 4:BASE_ADDR + pCol + 4 + real_str_len])[0]
         except struct.error:
-            #print 'Length is too long : %d'%real_str_len
+            # print 'Length is too long : %d'%real_str_len
             return ''
         return data
-
 
     def getAppleshareRecord(self, base_addr, offset):
         record = []
 
         BASE_ADDR = sizeof(_APPL_DB_HEADER) + base_addr + offset
 
-        RecordMeta = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR+sizeof(_APPLE_SHARE_HEADER)], _APPLE_SHARE_HEADER)
+        RecordMeta = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR + sizeof(_APPLE_SHARE_HEADER)], _APPLE_SHARE_HEADER)
 
         Buffer = self.fbuf[BASE_ADDR + sizeof(_APPLE_SHARE_HEADER):BASE_ADDR + RecordMeta.RecordSize]
 
@@ -613,13 +633,13 @@ class KeyChain():
         keyblob = plain[4:]
 
         if len(keyblob) != KEYLEN:
-            #raise "Bad decrypted keylen!"
+            # raise "Bad decrypted keylen!"
             return ''
 
         return keyblob
 
     # test code
-    #http://opensource.apple.com/source/libsecurity_keychain/libsecurity_keychain-55044/lib/KeyItem.cpp
+    # http://opensource.apple.com/source/libsecurity_keychain/libsecurity_keychain-55044/lib/KeyItem.cpp
     def PrivateKeyDecryption(self, encryptedblob, iv, dbkey):
         magicCmsIV = unhexlify('4adda22c79e82105')
         plain = kcdecrypt(dbkey, magicCmsIV, encryptedblob)
@@ -631,12 +651,12 @@ class KeyChain():
         # and reverse them.
         revplain = ''
         for i in range(len(plain)):
-            revplain += plain[len(plain)-1 - i]
+            revplain += plain[len(plain) - 1 - i]
 
         # now the real key gets found. */
         plain = kcdecrypt(dbkey, iv, revplain)
-        
-        Keyname = plain[:12]    # Copied Buffer when user click on right and copy a key on Keychain Access
+
+        Keyname = plain[:12]  # Copied Buffer when user click on right and copy a key on Keychain Access
         keyblob = plain[12:]
 
         return Keyname, keyblob
@@ -645,7 +665,7 @@ class KeyChain():
     def generateMasterKey(self, pw, symmetrickey_offset):
 
         base_addr = sizeof(_APPL_DB_HEADER) + symmetrickey_offset + 0x38  # header
-        dbblob = _memcpy(self.fbuf[base_addr:base_addr+sizeof(_DB_BLOB)], _DB_BLOB)
+        dbblob = _memcpy(self.fbuf[base_addr:base_addr + sizeof(_DB_BLOB)], _DB_BLOB)
 
         masterkey = pbkdf2(pw, str(bytearray(dbblob.salt)), 1000, KEYLEN)
         return masterkey
@@ -655,7 +675,7 @@ class KeyChain():
 
         base_addr = sizeof(_APPL_DB_HEADER) + symmetrickey_offset + 0x38
 
-        dbblob = _memcpy(self.fbuf[base_addr:base_addr+sizeof(_DB_BLOB)], _DB_BLOB)
+        dbblob = _memcpy(self.fbuf[base_addr:base_addr + sizeof(_DB_BLOB)], _DB_BLOB)
 
         # get cipher text area
         ciphertext = self.fbuf[base_addr + dbblob.startCryptoBlob:base_addr + dbblob.totalLength]
@@ -675,27 +695,30 @@ class KeyChain():
 # SOURCE : extractkeychain.py
 def kcdecrypt(key, iv, data):
     if len(data) == 0:
-        #print>>stderr, "FileSize is 0"
+        # print>>stderr, "FileSize is 0"
         return ''
 
     if len(data) % BLOCKSIZE != 0:
         return ''
 
+
     cipher = triple_des(key, CBC, str(bytearray(iv)))
+
     # the line below is for pycrypto instead
-    #cipher = DES3.new( key, DES3.MODE_CBC, iv )
+    # cipher = DES3.new( key, DES3.MODE_CBC, iv )
 
     plain = cipher.decrypt(data)
 
     # now check padding
     pad = ord(plain[-1])
     if pad > 8:
-        #print>> stderr, "Bad padding byte. You probably have a wrong password"
+        # print>> stderr, "Bad padding byte. You probably have a wrong password"
         return ''
+
 
     for z in plain[-pad:]:
         if ord(z) != pad:
-            #print>> stderr, "Bad padding. You probably have a wrong password"
+            # print>> stderr, "Bad padding. You probably have a wrong password"
             return ''
 
     plain = plain[:-pad]
@@ -703,11 +726,29 @@ def kcdecrypt(key, iv, data):
     return plain
 
 
-def main():
+BASEPATH = os.getcwd() + '/exported/'
 
+if not os.path.exists(BASEPATH):
+    os.makedirs(BASEPATH)
+
+
+def add_file(directory, filename='default', key=None, cert=None):
+    # print 'into function key={}, cert={}'.format(key, cert)
+    target_path = BASEPATH + directory
+    if not os.path.exists(target_path):
+        os.makedirs(target_path)
+    if key is not None:
+        with open(target_path + '/{}.key'.format(filename), 'w+') as f:
+            f.write(key)
+    if cert is not None:
+        with open(target_path + '/{}.crt'.format(filename), 'w+') as f:
+            f.write(cert)
+
+
+def main():
     parser = argparse.ArgumentParser(description='Tool for OS X Keychain Analysis by @n0fate')
     parser.add_argument('-f', '--file', nargs=1, help='Keychain file(*.keychain)', required=True)
-    #parser.add_argument('-x', '--exportfile', nargs=1, help='Export a filename (SQLite, optional)', required=False)
+    # parser.add_argument('-x', '--exportfile', nargs=1, help='Export a filename (SQLite, optional)', required=False)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-k', '--key', nargs=1, help='Keychain Masterkey', required=False)
     group.add_argument('-u', '--unlockfile', nargs=1, help='System.keychain unlock file (/var/db/SystemKey)', required=False)
@@ -720,9 +761,9 @@ def main():
         exit()
 
     keychain = KeyChain(args.file[0])
-    
+
     if keychain.open() is False:
-        print '[!] ERROR: %s Open Failed'%args.file[0]
+        print '[!] ERROR: %s Open Failed' % args.file[0]
         parser.print_help()
         exit()
 
@@ -755,24 +796,27 @@ def main():
     else:
         print '[!] ERROR: password or master key candidate is invalid'
         exit()
-    
+
     if len(dbkey) == 0:
         print '[!] ERROR: password or master key candidate is invalid'
         exit()
 
     # DEBUG
     print ' [-] DB Key'
-    hexdump(dbkey)
+    # hexdump(dbkey)
 
     key_list = {}  # keyblob list
 
     # get symmetric key blob
-    print '[+] Symmetric Key Table: 0x%.8x' % (sizeof(_APPL_DB_HEADER) + TableList[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]])
+    print '[+] Symmetric Key Table:'
+    # print '0x%.8x' % (
+    #             sizeof(_APPL_DB_HEADER) + TableList[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]])
     TableMetadata, symmetrickey_list = keychain.getTable(TableList[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]])
 
     for symmetrickey_record in symmetrickey_list:
-        keyblob, ciphertext, iv, return_value = keychain.getKeyblobRecord(TableList[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]],
-                                                                            symmetrickey_record)
+        keyblob, ciphertext, iv, return_value = keychain.getKeyblobRecord(
+            TableList[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]],
+            symmetrickey_record)
         if return_value == 0:
             passwd = keychain.KeyblobDecryption(ciphertext, iv, dbkey)
             if passwd != '':
@@ -789,18 +833,18 @@ def main():
                 passwd = keychain.SSGPDecryption(record[0], real_key)
             except KeyError:
                 passwd = ''
-            print ' [-] Create DateTime: %s' % record[1]  # 16byte string
-            print ' [-] Last Modified DateTime: %s' % record[2]  # 16byte string
-            print ' [-] Description : %s' % record[3]
-            print ' [-] Creator : %s' % record[4]
-            print ' [-] Type : %s' % record[5]
-            print ' [-] PrintName : %s' % record[6]
-            print ' [-] Alias : %s' % record[7]
-            print ' [-] Account : %s' % record[8]
-            print ' [-] Service : %s' % record[9]
-            print ' [-] Password'
-            hexdump(passwd)
-            print ''
+            # print ' [-] Create DateTime: %s' % record[1]  # 16byte string
+            # print ' [-] Last Modified DateTime: %s' % record[2]  # 16byte string
+            # print ' [-] Description : %s' % record[3]
+            # print ' [-] Creator : %s' % record[4]
+            # print ' [-] Type : %s' % record[5]
+            # print ' [-] PrintName : %s' % record[6]
+            # print ' [-] Alias : %s' % record[7]
+            # print ' [-] Account : %s' % record[8]
+            # print ' [-] Service : %s' % record[9]
+            # print ' [-] Password'
+            # hexdump(passwd)
+            # print ''
 
     except KeyError:
         print '[!] Generic Password Table is not available'
@@ -811,75 +855,77 @@ def main():
 
         for internetpw in internetpw_list:
             record = keychain.getInternetPWRecord(TableList[tableEnum[CSSM_DL_DB_RECORD_INTERNET_PASSWORD]], internetpw)
-            print '[+] Internet Record'
+            # print '[+] Internet Record'
             try:
                 real_key = key_list[record[0][0:20]]
                 passwd = keychain.SSGPDecryption(record[0], real_key)
             except KeyError:
                 passwd = ''
-            print ' [-] Create DateTime: %s' % record[1]  # 16byte string
-            print ' [-] Last Modified DateTime: %s' % record[2]  # 16byte string
-            print ' [-] Description : %s' % record[3]
-            print ' [-] Comment : %s' % record[4]
-            print ' [-] Creator : %s' % record[5]
-            print ' [-] Type : %s' % record[6]
-            print ' [-] PrintName : %s' % record[7]
-            print ' [-] Alias : %s' % record[8]
-            print ' [-] Protected : %s' % record[9]
-            print ' [-] Account : %s' % record[10]
-            print ' [-] SecurityDomain : %s' % record[11]
-            print ' [-] Server : %s' % record[12]
-            try:
-                print ' [-] Protocol Type : %s' % PROTOCOL_TYPE[record[13]]
-            except KeyError:
-                print ' [-] Protocol Type : %s' % record[13]
-            try:
-                print ' [-] Auth Type : %s' % AUTH_TYPE[record[14]]
-            except KeyError:
-                print ' [-] Auth Type : %s' % record[14]
-            print ' [-] Port : %d' % record[15]
-            print ' [-] Path : %s' % record[16]
-            print ' [-] Password'
-            hexdump(passwd)
-            print ''
+            # print ' [-] Create DateTime: %s' % record[1]  # 16byte string
+            # print ' [-] Last Modified DateTime: %s' % record[2]  # 16byte string
+            # print ' [-] Description : %s' % record[3]
+            # print ' [-] Comment : %s' % record[4]
+            # print ' [-] Creator : %s' % record[5]
+            # print ' [-] Type : %s' % record[6]
+            # print ' [-] PrintName : %s' % record[7]
+            # print ' [-] Alias : %s' % record[8]
+            # print ' [-] Protected : %s' % record[9]
+            # print ' [-] Account : %s' % record[10]
+            # print ' [-] SecurityDomain : %s' % record[11]
+            # print ' [-] Server : %s' % record[12]
+            # try:
+            #     print ' [-] Protocol Type : %s' % PROTOCOL_TYPE[record[13]]
+            # except KeyError:
+            #     print ' [-] Protocol Type : %s' % record[13]
+            # try:
+            #     print ' [-] Auth Type : %s' % AUTH_TYPE[record[14]]
+            # except KeyError:
+            #     print ' [-] Auth Type : %s' % record[14]
+            # print ' [-] Port : %d' % record[15]
+            # print ' [-] Path : %s' % record[16]
+            # print ' [-] Password'
+            # hexdump(passwd)
+            # print ''
 
     except KeyError:
         print '[!] Internet Password Table is not available'
         pass
 
     try:
-        TableMetadata, applesharepw_list = keychain.getTable(TableList[tableEnum[CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD]])
+        TableMetadata, applesharepw_list = keychain.getTable(
+            TableList[tableEnum[CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD]])
 
         for applesharepw in applesharepw_list:
-            record = keychain.getAppleshareRecord(TableList[tableEnum[CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD]], applesharepw)
+            record = keychain.getAppleshareRecord(TableList[tableEnum[CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD]],
+                                                  applesharepw)
             print '[+] AppleShare Record (no more used OS X)'
             try:
                 real_key = key_list[record[0][0:20]]
                 passwd = keychain.SSGPDecryption(record[0], real_key)
             except KeyError:
                 passwd = ''
-            #print ''
-            print ' [-] Create DateTime: %s' % record[1]  # 16byte string
-            print ' [-] Last Modified DateTime: %s' % record[2]  # 16byte string
-            print ' [-] Description : %s' % record[3]
-            print ' [-] Comment : %s' % record[4]
-            print ' [-] Creator : %s' % record[5]
-            print ' [-] Type : %s' % record[6]
-            print ' [-] PrintName : %s' % record[7]
-            print ' [-] Alias : %s' % record[8]
-            print ' [-] Protected : %s' % record[9]
-            print ' [-] Account : %s' % record[10]
-            print ' [-] Volume : %s' % record[11]
-            print ' [-] Server : %s' % record[12]
-            try:
-                print ' [-] Protocol Type : %s' % PROTOCOL_TYPE[record[13]]
-            except KeyError:
-                print ' [-] Protocol Type : %s' % record[13]
-            print ' [-] Address : %d' % record[14]
-            print ' [-] Signature : %s' % record[15]
-            print ' [-] Password'
-            hexdump(passwd)
-            print ''
+            # print ''
+            # print ' [-] Create DateTime: %s' % record[1]  # 16byte string
+            # print ' [-] Last Modified DateTime: %s' % record[2]  # 16byte string
+            # print ' [-] Description : %s' % record[3]
+            # print ' [-] Comment : %s' % record[4]
+            # print ' [-] Creator : %s' % record[5]
+            # print ' [-] Type : %s' % record[6]
+            # print ' [-] PrintName : %s' % record[7]
+            # print ' [-] Alias : %s' % record[8]
+            # print ' [-] Protected : %s' % record[9]
+            # print ' [-] Account : %s' % record[10]
+            # print ' [-] Volume : %s' % record[11]
+            # print ' [-] Server : %s' % record[12]
+            # try:
+                # print ' [-] Protocol Type : %s' % PROTOCOL_TYPE[record[13]]
+            # except KeyError:
+            #     print ' [-] Protocol Type : %s' % record[13]
+            # print ' [-] Address : %d' % record[14]
+            # print ' [-] Signature : %s' % record[15]
+            # print ' [-] Password'
+            # hexdump(passwd)
+            # print ''
 
     except KeyError:
         print '[!] AppleShare Table is not available'
@@ -888,26 +934,27 @@ def main():
     try:
         TableMetadata, x509CertList = keychain.getTable(TableList[tableEnum[CSSM_DL_DB_RECORD_X509_CERTIFICATE]])
 
-        for x509Cert in x509CertList:
+        for i, x509Cert in enumerate(x509CertList, 1):
             record = keychain.getx509Record(TableList[tableEnum[CSSM_DL_DB_RECORD_X509_CERTIFICATE]], x509Cert)
             print '[+] Certificate'
-            print ' [-] Cert Type: %s' %CERT_TYPE[record[0]]
-            print ' [-] Cert Encoding: %s' %CERT_ENCODING[record[1]]
-            print ' [-] PrintName : %s' % record[2]
-            print ' [-] Alias : %s' % record[3]
-            print ' [-] Subject'
-            hexdump(record[4])
-            print ' [-] Issuer :'
-            hexdump(record[5])
-            print ' [-] SerialNumber'
-            hexdump(record[6])
-            print ' [-] SubjectKeyIdentifier'
-            hexdump(record[7])
-            print ' [-] Public Key Hash'
-            hexdump(record[8])
-            print ' [-] Certificate'
-            hexdump(record[9])
-            print ''
+            # print ' [-] Cert Type: %s' % CERT_TYPE[record[0]]
+            # print ' [-] Cert Encoding: %s' % CERT_ENCODING[record[1]]
+            # print ' [-] PrintName : %s' % record[2]
+            # print ' [-] Alias : %s' % record[3]
+            # print ' [-] Subject'
+            # hexdump(record[4])
+            # print ' [-] Issuer :'
+            # hexdump(record[5])
+            # print ' [-] SerialNumber'
+            # hexdump(record[6])
+            # print ' [-] SubjectKeyIdentifier'
+            # hexdump(record[7])
+            # print ' [-] Public Key Hash'
+            # hexdump(record[8])
+            # print ' [-] Certificate'
+            add_file(directory='certs', filename=str(i), cert=str(record[9]))
+            # hexdump(record[9])
+            # print ''
 
     except KeyError:
         print '[!] Certification Table is not available'
@@ -918,19 +965,19 @@ def main():
         for PublicKey in PublicKeyList:
             record = keychain.getKeyRecord(TableList[tableEnum[CSSM_DL_DB_RECORD_PUBLIC_KEY]], PublicKey)
             print '[+] Public Key Record'
-            print ' [-] PrintName: %s' %record[0]
-            print ' [-] Label'
-            hexdump(record[1])
-            print ' [-] Key Class : %s'%KEY_TYPE[record[2]]
-            print ' [-] Private : %d'%record[3]
-            print ' [-] Key Type : %s'%CSSM_ALGORITHMS[record[4]]
-            print ' [-] Key Size : %d bits'%record[5]
-            print ' [-] Effective Key Size : %d bits'%record[6]
-            print ' [-] Extracted : %d'%record[7]
-            print ' [-] CSSM Type : %s' %STD_APPLE_ADDIN_MODULE[record[8]]
-            print ' [-] Public Key'
-            hexdump(record[10])
-            print ''
+            # print ' [-] PrintName: %s' % record[0]
+            # print ' [-] Label'
+            # hexdump(record[1])
+            # print ' [-] Key Class : %s' % KEY_TYPE[record[2]]
+            # print ' [-] Private : %d' % record[3]
+            # print ' [-] Key Type : %s' % CSSM_ALGORITHMS[record[4]]
+            # print ' [-] Key Size : %d bits' % record[5]
+            # print ' [-] Effective Key Size : %d bits' % record[6]
+            # print ' [-] Extracted : %d' % record[7]
+            # print ' [-] CSSM Type : %s' % STD_APPLE_ADDIN_MODULE[record[8]]
+            # print ' [-] Public Key'
+            # hexdump(record[10])
+            # print ''
 
     except KeyError:
         print '[!] Public Key Table is not available'
@@ -938,29 +985,49 @@ def main():
 
     try:
         table_meta, PrivateKeyList = keychain.getTable(TableList[tableEnum[CSSM_DL_DB_RECORD_PRIVATE_KEY]])
-        for PrivateKey in PrivateKeyList:
+        for i, PrivateKey in enumerate(PrivateKeyList, 1):
             record = keychain.getKeyRecord(TableList[tableEnum[CSSM_DL_DB_RECORD_PRIVATE_KEY]], PrivateKey)
             print '[+] Private Key Record'
-            print ' [-] PrintName: %s' % record[0]
-            print ' [-] Label'
-            hexdump(record[1])
-            print ' [-] Key Class : %s' % KEY_TYPE[record[2]]
-            print ' [-] Private : %d' % record[3]
-            print ' [-] Key Type : %s' % CSSM_ALGORITHMS[record[4]]
-            print ' [-] Key Size : %d bits' % record[5]
-            print ' [-] Effective Key Size : %d bits' % record[6]
-            print ' [-] Extracted : %d' % record[7]
-            print ' [-] CSSM Type : %s' % STD_APPLE_ADDIN_MODULE[record[8]]
+            # print ' [-] PrintName: %s' % record[0]
+            # print ' [-] Label'
+            # hexdump(record[1])
+            # print ' [-] Key Class : %s' % KEY_TYPE[record[2]]
+            # print ' [-] Private : %d' % record[3]
+            # print ' [-] Key Type : %s' % CSSM_ALGORITHMS[record[4]]
+            # print ' [-] Key Size : %d bits' % record[5]
+            # print ' [-] Effective Key Size : %d bits' % record[6]
+            # print ' [-] Extracted : %d' % record[7]
+            # print ' [-] CSSM Type : %s' % STD_APPLE_ADDIN_MODULE[record[8]]
             keyname, privatekey = keychain.PrivateKeyDecryption(record[10], record[9], dbkey)
-            print ' [-] Key Name'
-            hexdump(keyname)
-            print ' [-] Decrypted Private Key'
-            hexdump(privatekey)
-            print ''
+            # print ' [-] Key Name'
+            # hexdump(keyname)
+            # print ' [-] Decrypted Private Key'
+            add_file(directory='keys', filename=str(i), key=str(privatekey))
+            # hexdump(privatekey)
+            # print ''
 
     except KeyError:
         print '[!] Private Key Table is not available'
         pass
+
+    v = Validator()
+
+    certs = os.listdir(BASEPATH + '/certs')
+    keys = os.listdir(BASEPATH + '/keys')
+
+    k_path = BASEPATH + '/keys/{}'
+    c_path = BASEPATH + '/certs/{}'
+
+    for i, c in enumerate(certs, 1):
+        for j, k in enumerate(keys, 1):
+            if v.validate_by_filenames(key_path=k_path.format(k), cert_path=c_path.format(c)):
+                try:
+                    new_folder_name = len(os.listdir(BASEPATH + 'associated')) + 1
+                except OSError:
+                    new_folder_name = 1
+                add_file('associated/{}'.format(new_folder_name), filename=str(i), cert=open(c_path.format(c)).read())
+                add_file('associated/{}'.format(new_folder_name), filename=str(j), key=open(k_path.format(k)).read())
+
 
     exit()
 
