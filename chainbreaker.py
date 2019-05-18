@@ -758,7 +758,7 @@ def main():
     args = parser.parse_args()
 
     if os.path.exists(args.file[0]) is False:
-        print '[!] ERROR: Keychain is not exists'
+        print '[!] ERROR: Keychain does not exist'
         parser.print_help()
         exit()
 
