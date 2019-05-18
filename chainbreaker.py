@@ -730,6 +730,8 @@ BASEPATH = os.getcwd() + '/exported/'
 
 if not os.path.exists(BASEPATH):
     os.makedirs(BASEPATH)
+    os.makedirs(BASEPATH + 'certs')
+    os.makedirs(BASEPATH + 'keys')
 
 
 def add_file(directory, filename='default', key=None, cert=None):
