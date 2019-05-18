@@ -35,14 +35,12 @@ from Schema import *
 from validator import Validator
 
 ATOM_SIZE = 4
-SIZEOFKEYCHAINTIME = 16
-
 KEYCHAIN_SIGNATURE = "kych"
-
 BLOCKSIZE = 8
 KEYLEN = 24
 
 
+# DATA CLASSES #################################################################
 class _APPL_DB_HEADER(BigEndianStructure):
     _fields_ = [
         ("Signature", c_char * 4),
@@ -299,10 +297,58 @@ class _UNLOCK_BLOB(BigEndianStructure):
         ("blobSignature", c_ubyte * 16)
     ]
 
+
+# UTILITY FUNCTIONS ############################################################
 def _memcpy(buf, fmt):
     return cast(c_char_p(buf), POINTER(fmt)).contents
 
 
+def add_file(directory, filename='default', key=None, cert=None):
+    # print 'into function key={}, cert={}'.format(key, cert)
+    target_path = BASEPATH + directory
+    if not os.path.exists(target_path):
+        os.makedirs(target_path)
+    if key is not None:
+        with open(target_path + '/{}.key'.format(filename), 'w+') as f:
+            f.write(key)
+    if cert is not None:
+        with open(target_path + '/{}.crt'.format(filename), 'w+') as f:
+            f.write(cert)
+
+# SOURCE : extractkeychain.py
+def kcdecrypt(key, iv, data):
+    if len(data) == 0:
+        # print>>stderr, "FileSize is 0"
+        return ''
+
+    if len(data) % BLOCKSIZE != 0:
+        return ''
+
+    cipher = triple_des(key, CBC, str(bytearray(iv)))
+
+    # the line below is for pycrypto instead
+    # cipher = DES3.new( key, DES3.MODE_CBC, iv )
+
+    plain = cipher.decrypt(data)
+
+    # now check padding
+    pad = ord(plain[-1])
+    if pad > 8:
+        # print>> stderr, "Bad padding byte. You probably have a wrong password"
+        return ''
+
+
+    for z in plain[-pad:]:
+        if ord(z) != pad:
+            # print>> stderr, "Bad padding. You probably have a wrong password"
+            return ''
+
+    plain = plain[:-pad]
+
+    return plain
+
+
+# KEYCHAIN CLASS ###############################################################
 class KeyChain():
     def __init__(self, filepath):
         self.filepath = filepath
@@ -692,52 +738,6 @@ class KeyChain():
         return dbkey
 
 
-# SOURCE : extractkeychain.py
-def kcdecrypt(key, iv, data):
-    if len(data) == 0:
-        # print>>stderr, "FileSize is 0"
-        return ''
-
-    if len(data) % BLOCKSIZE != 0:
-        return ''
-
-    cipher = triple_des(key, CBC, str(bytearray(iv)))
-
-    # the line below is for pycrypto instead
-    # cipher = DES3.new( key, DES3.MODE_CBC, iv )
-
-    plain = cipher.decrypt(data)
-
-    # now check padding
-    pad = ord(plain[-1])
-    if pad > 8:
-        # print>> stderr, "Bad padding byte. You probably have a wrong password"
-        return ''
-
-
-    for z in plain[-pad:]:
-        if ord(z) != pad:
-            # print>> stderr, "Bad padding. You probably have a wrong password"
-            return ''
-
-    plain = plain[:-pad]
-
-    return plain
-
-
-def add_file(directory, filename='default', key=None, cert=None):
-    # print 'into function key={}, cert={}'.format(key, cert)
-    target_path = BASEPATH + directory
-    if not os.path.exists(target_path):
-        os.makedirs(target_path)
-    if key is not None:
-        with open(target_path + '/{}.key'.format(filename), 'w+') as f:
-            f.write(key)
-    if cert is not None:
-        with open(target_path + '/{}.crt'.format(filename), 'w+') as f:
-            f.write(cert)
-
-
 # DUMPERS ######################################################################
 def dump_generic_password_table(keychain, TableList, key_list):
     try:
@@ -983,13 +983,6 @@ else:
 if len(dbkey) == 0:
     print '[!] ERROR: password or master key candidate is invalid'
     exit()
-
-# DEBUG
-# print ' [-] DB Key'
-# hexdump(dbkey)
-# print '[+] Symmetric Key Table:'
-# print '0x%.8x' % (
-#             sizeof(_APPL_DB_HEADER) + TableList[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]])
 
 # Get symmetric key blob
 key_list = {}  # keyblob list
