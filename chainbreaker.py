@@ -738,19 +738,12 @@ def add_file(directory, filename='default', key=None, cert=None):
             f.write(cert)
 
 
-BASEPATH = os.getcwd() + '/exported/'
-
-if not os.path.exists(BASEPATH):
-    os.makedirs(BASEPATH)
-    os.makedirs(BASEPATH + 'certs')
-    os.makedirs(BASEPATH + 'keys')
-
+# MAIN #########################################################################
 # Parse arguments
 parser = argparse.ArgumentParser(description='Tool for OS X Keychain Analysis by @n0fate')
 parser.add_argument('-f', '--file', nargs=1, help='Keychain file(*.keychain)', required=True)
-# parser.add_argument('-x', '--exportfile', nargs=1, help='Export a filename (SQLite, optional)', required=False)
 group = parser.add_mutually_exclusive_group(required=True)
-group.add_argument('-k', '--key', nargs=1, help='Keychain Masterkey', required=False)
+group.add_argument('-k', '--key', nargs='+', action='append', help='Keychain Masterkey', required=False)
 group.add_argument('-u', '--unlockfile', nargs=1, help='System.keychain unlock file (/var/db/SystemKey)', required=False)
 group.add_argument('-p', '--password', nargs=1, help='Keychain Password', required=False)
 args = parser.parse_args()
@@ -773,6 +766,14 @@ if KeychainHeader.Signature != KEYCHAIN_SIGNATURE:
     parser.print_help()
     exit()
 
+# Create export dirs
+BASEPATH = os.getcwd() + '/exported/'
+if not os.path.exists(BASEPATH):
+    os.makedirs(BASEPATH)
+    os.makedirs(BASEPATH + 'certs')
+    os.makedirs(BASEPATH + 'keys')
+
+# Get tables from the keychain file
 SchemaInfo, TableList = keychain.getSchemaInfo(KeychainHeader.SchemaOffset)
 TableMetadata, RecordList = keychain.getTable(TableList[0])
 tableCount, tableEnum = keychain.getTablenametoList(RecordList, TableList)
@@ -781,10 +782,12 @@ tableCount, tableEnum = keychain.getTablenametoList(RecordList, TableList)
 if args.password is not None:
     masterkey = keychain.generateMasterKey(args.password[0], TableList[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
     dbkey = keychain.findWrappingKey(masterkey, TableList[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
-
 elif args.key is not None:
-    dbkey = keychain.findWrappingKey(unhexlify(args.key[0]), TableList[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
-
+    for key in args.key:
+        dbkey = keychain.findWrappingKey(unhexlify(key[0]), TableList[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
+        if len(dbkey):
+            print '[+] Found a key for the keychain: {}'.format(key[0])
+            break
 elif args.unlockfile is not None:
     with open(args.unlockfile[0], mode='rb') as uf:
         filecontent = uf.read()
@@ -799,13 +802,13 @@ if len(dbkey) == 0:
     exit()
 
 # DEBUG
-print ' [-] DB Key'
+# print ' [-] DB Key'
 # hexdump(dbkey)
 
 key_list = {}  # keyblob list
 
 # get symmetric key blob
-print '[+] Symmetric Key Table:'
+# print '[+] Symmetric Key Table:'
 # print '0x%.8x' % (
 #             sizeof(_APPL_DB_HEADER) + TableList[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]])
 TableMetadata, symmetrickey_list = keychain.getTable(TableList[tableEnum[CSSM_DL_DB_RECORD_SYMMETRIC_KEY]])
@@ -819,6 +822,7 @@ for symmetrickey_record in symmetrickey_list:
         if passwd != '':
             key_list[keyblob] = passwd
 
+# Dump Generic Password Table
 try:
     TableMetadata, genericpw_list = keychain.getTable(TableList[tableEnum[CSSM_DL_DB_RECORD_GENERIC_PASSWORD]])
 
@@ -842,11 +846,11 @@ try:
         # print ' [-] Password'
         # hexdump(passwd)
         # print ''
-
 except KeyError:
     print '[!] Generic Password Table is not available'
     pass
 
+# Dump internet passwords
 try:
     TableMetadata, internetpw_list = keychain.getTable(TableList[tableEnum[CSSM_DL_DB_RECORD_INTERNET_PASSWORD]])
 
@@ -883,11 +887,11 @@ try:
         # print ' [-] Password'
         # hexdump(passwd)
         # print ''
-
 except KeyError:
     print '[!] Internet Password Table is not available'
     pass
 
+# Dump Appleshare records
 try:
     TableMetadata, applesharepw_list = keychain.getTable(
         TableList[tableEnum[CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD]])
@@ -923,11 +927,11 @@ try:
         # print ' [-] Password'
         # hexdump(passwd)
         # print ''
-
 except KeyError:
     print '[!] AppleShare Table is not available'
     pass
 
+# Dump x509 certsY
 try:
     TableMetadata, x509CertList = keychain.getTable(TableList[tableEnum[CSSM_DL_DB_RECORD_X509_CERTIFICATE]])
 
@@ -957,6 +961,7 @@ except KeyError:
     print '[!] Certification Table is not available'
     pass
 
+# Dump public keys
 try:
     TableMetadata, PublicKeyList = keychain.getTable(TableList[tableEnum[CSSM_DL_DB_RECORD_PUBLIC_KEY]])
     for PublicKey in PublicKeyList:
@@ -975,11 +980,11 @@ try:
         # print ' [-] Public Key'
         # hexdump(record[10])
         # print ''
-
 except KeyError:
     print '[!] Public Key Table is not available'
     pass
 
+# Dump private keys
 try:
     table_meta, PrivateKeyList = keychain.getTable(TableList[tableEnum[CSSM_DL_DB_RECORD_PRIVATE_KEY]])
     for i, PrivateKey in enumerate(PrivateKeyList, 1):
@@ -1002,7 +1007,6 @@ try:
         add_file(directory='keys', filename=str(i), key=str(privatekey))
         # hexdump(privatekey)
         # print ''
-
 except KeyError:
     print '[!] Private Key Table is not available'
     pass
