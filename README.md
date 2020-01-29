@@ -1,5 +1,3 @@
-This branch contains a quick patch for chainbreaker to dump non-exportable keys on High Sierra, see README-keydump.txt for more details. Original README goes below.
-
 chainbreaker
 ============
 
