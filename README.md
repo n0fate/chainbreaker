@@ -155,7 +155,7 @@ After obtaining the keychain password hash, you can use a program such as [hashc
 
 ```
 
-> hashcat.exe -m 23100 hashes.txt dictionary.txt
+> hashcat.exe -m 23100 --keep-guessing hashes.txt dictionary.txt
 hashcat (v6.1.1) starting...
 
 [...]
@@ -184,6 +184,9 @@ Hash.Target......: $keychain$*7255a69abe21a28e1d2967265c9bba9c9bf4daf1...d067e5
 [...]
 
 ```
+
+*Note:* As described in [hashcat #2457](https://github.com/hashcat/hashcat/issues/2457) collisions are very common based on the current checks.
+To combat this, you'll want to use the "--keep-guessing" flag, and keep trying the found passwords until you (hopefully) get the correct one.
 
 ## Extraction from memory images
 Volofax can be used to extract Keychain files and master key candidates from memory images.
