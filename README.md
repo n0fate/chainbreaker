@@ -13,7 +13,9 @@ Chainbreaker can be used to extract the following types of information from an O
 * Appleshare Passwords
  
 Given the keychain unlock password, a master key obtained using [volafox](https://github.com/n0fate/volafox) or 
-[volatility](https://github.com/volatilityfoundation/volatility), Chainbreaker will also provide plaintext passwords.
+[volatility](https://github.com/volatilityfoundation/volatility), or an unlock file such as SystemKey, Chainbreaker will
+also provide plaintext passwords.
+
 Without one of these methods of unlocking the Keychain, Chainbreaker will display all other available information.
 
 ## Supported OS's
