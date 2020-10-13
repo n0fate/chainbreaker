@@ -10,6 +10,7 @@ Chainbreaker can be used to extract the following types of information from an O
 * Private Keys
 * Public Keys
 * X509 Certificates
+* Secure Notes
 * Appleshare Passwords
  
 Given the keychain unlock password, a master key obtained using [volafox](https://github.com/n0fate/volafox) or 
@@ -33,14 +34,19 @@ Any valid .keychain or .keychain-db can be supplied. Common Keychain locations i
 
 ## Help:
 ```
-$ ./chainbreaker.py --help
+$ python ./chainbreaker.py --help
 usage: chainbreaker.py [-h] [--dump-all] [--dump-keychain-password-hash]
                        [--dump-generic-passwords] [--dump-internet-passwords]
                        [--dump-appleshare-passwords] [--dump-private-keys]
                        [--dump-public-keys] [--dump-x509-certificates]
-                       [--password-prompt] [--password PASSWORD]
-                       [--key-prompt] [--key KEY] [--unlock-file UNLOCK_FILE]
-                       [--output OUTPUT] [-q] [-d]
+                       [--export-keychain-password-hash]
+                       [--export-generic-passwords]
+                       [--export-internet-passwords]
+                       [--export-appleshare-passwords] [--export-private-keys]
+                       [--export-public-keys] [--export-x509-certificates]
+                       [--export-all] [--password-prompt]
+                       [--password PASSWORD] [--key-prompt] [--key KEY]
+                       [--unlock-file UNLOCK_FILE] [--output OUTPUT] [-q] [-d]
                        keychain
 
 Dump items stored in an OSX Keychain
@@ -51,8 +57,8 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
 
-Available Actions:
-  --dump-all, -a        Dump all keychain items
+Dump Actions:
+  --dump-all, -a        Dump records to the console window.
   --dump-keychain-password-hash
                         Dump the keychain password hash in a format suitable
                         for hashcat or John The Ripper
@@ -65,25 +71,43 @@ Available Actions:
   --dump-private-keys   Dump all private keys
   --dump-public-keys    Dump all public keys
   --dump-x509-certificates
-                        Dump all X509 ertificates
+                        Dump all X509 certificates
+
+Export Options:
+  Export records to files. Save location is CWD, but can be overridden with
+  --output / -o
+
+  --export-keychain-password-hash
+                        Save the keychain password hash to disk
+  --export-generic-passwords
+                        Save all generic passwords to disk
+  --export-internet-passwords
+                        Save all internet passwords to disk
+  --export-appleshare-passwords
+                        Save all appleshare passwords to disk
+  --export-private-keys
+                        Save private keys to disk
+  --export-public-keys  Save public keys to disk
+  --export-x509-certificates
+                        Save X509 certificates to disk
+  --export-all, -e      Save records to disk
 
 Unlock Options:
   --password-prompt, -p
                         Prompt for a password to use in unlocking the keychain
   --password PASSWORD   Unlock the keychain with a password, provided on the
                         terminal.Caution: This is insecure and you should
-                        likely use--password-prompt instead.
+                        likely use--password-prompt instead
   --key-prompt, -k      Prompt for a key to use in unlocking the keychain
   --key KEY             Unlock the keychain with a key, provided via
                         argument.Caution: This is insecure and you should
-                        likely use --key-prompt instead.
+                        likely use --key-prompt instead
   --unlock-file UNLOCK_FILE
                         Unlock the keychain with a key file
 
 Output Options:
   --output OUTPUT, -o OUTPUT
-                        Not currently implemented.Directory to output exported
-                        records to.
+                        Directory to output exported records to.
   -q, --quiet           Suppress all output
   -d, --debug           Print debug information
 ```
@@ -233,7 +257,5 @@ During the refactor, additional functionality was added including:
 [GNU GPL v2](http://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
 
 ## TODO
-* Allow keys and certificates to be exported to file.
-* Better export options (e.g. dump to CSV)
 * Better commenting of code.
 * Better documentation of the keychain format.
