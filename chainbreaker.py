@@ -20,12 +20,12 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 import struct
-from pbkdf2 import pbkdf2
+from pbkdf2 import PBKDF2
 from schema import *
 from schema import _APPL_DB_HEADER, _APPL_DB_SCHEMA, _TABLE_HEADER, _DB_BLOB, _GENERIC_PW_HEADER, \
     _KEY_BLOB_REC_HEADER, _KEY_BLOB, _SSGP, _INTERNET_PW_HEADER, _APPLE_SHARE_HEADER, _X509_CERT_HEADER, _SECKEY_HEADER, \
     _UNLOCK_BLOB, _KEYCHAIN_TIME, _INT, _FOUR_CHAR_CODE, _LV, _TABLE_ID, _RECORD_OFFSET
-from pyDes import triple_des, CBC
+from pyDes import TripleDES, CBC
 from binascii import unhexlify, hexlify
 import logging
 import base64
@@ -60,7 +60,7 @@ class Chainbreaker(object):
         self.symmetric_key_list = None
         self.symmetric_key_offset = None
         self.dbblob = None
-        self.unlocked = False
+        self.locked = True
 
         self.logger = logging.getLogger('Chainbreaker')
 
@@ -196,6 +196,8 @@ class Chainbreaker(object):
                 password = self._keyblob_decryption(ciphertext, iv, self.db_key)
                 if password != '':
                     self.key_list[keyblob] = password
+
+        return len(self.key_list)
 
     def _get_schema_info(self, offset):
         table_list = []
@@ -370,7 +372,7 @@ class Chainbreaker(object):
 
     # ## Documents : http://www.opensource.apple.com/source/securityd/securityd-55137.1/doc/BLOBFORMAT
     def _generate_master_key(self, pw):
-        return pbkdf2(pw, str(bytearray(self.dbblob.Salt)), 1000, Chainbreaker.KEYLEN)
+        return str(PBKDF2(pw, str(bytearray(self.dbblob.Salt)), 1000, Chainbreaker.KEYLEN))
 
     # ## find DBBlob and extract Wrapping key
     def _find_wrapping_key(self, master):
@@ -586,7 +588,7 @@ class Chainbreaker(object):
         if len(data) % Chainbreaker.BLOCKSIZE != 0:
             return ''
 
-        cipher = triple_des(key, CBC, str(bytearray(iv)))
+        cipher = TripleDES(key, CBC, str(bytearray(iv)))
 
         plain = cipher.decrypt(data)
 
@@ -665,7 +667,11 @@ class Chainbreaker(object):
         self._db_key = key
 
         if self._db_key:
-            self._generate_key_list()
+            # Even after finding a db_key, we need to try and load the key list.
+            # If we don't find any keys, but we do find a db_key, then we've likely
+            # found a hash collision
+            if self._generate_key_list() > 0:
+                self.locked = False
 
     class KeychainRecord(object):
         def __init__(self):
@@ -1078,46 +1084,54 @@ if __name__ == "__main__":
     arguments.add_argument('keychain', help='Location of the keychain file to parse')
 
     # Available actions
-    dump_options = arguments.add_argument_group('Dump Actions')
-    dump_options.add_argument('--dump-all', '-a', help='Dump records to the console window.',
+    dump_actions = arguments.add_argument_group('Dump Actions')
+    dump_actions.add_argument('--dump-all', '-a', help='Dump records to the console window.',
                               action='store_const', dest='dump_all', const=True)
-    dump_options.add_argument('--dump-keychain-password-hash',
+    dump_actions.add_argument('--dump-keychain-password-hash',
                               help='Dump the keychain password hash in a format suitable for hashcat or John The Ripper',
                               action='store_const', dest='dump_keychain_password_hash', const=True)
-    dump_options.add_argument('--dump-generic-passwords', help='Dump all generic passwords',
+    dump_actions.add_argument('--dump-generic-passwords', help='Dump all generic passwords',
                               action='store_const', dest='dump_generic_passwords', const=True)
-    dump_options.add_argument('--dump-internet-passwords', help='Dump all internet passwords',
+    dump_actions.add_argument('--dump-internet-passwords', help='Dump all internet passwords',
                               action='store_const', dest='dump_internet_passwords', const=True)
-    dump_options.add_argument('--dump-appleshare-passwords', help='Dump all appleshare passwords',
+    dump_actions.add_argument('--dump-appleshare-passwords', help='Dump all appleshare passwords',
                               action='store_const', dest='dump_appleshare_passwords', const=True)
-    dump_options.add_argument('--dump-private-keys', help='Dump all private keys',
+    dump_actions.add_argument('--dump-private-keys', help='Dump all private keys',
                               action='store_const', dest='dump_private_keys', const=True)
-    dump_options.add_argument('--dump-public-keys', help='Dump all public keys',
+    dump_actions.add_argument('--dump-public-keys', help='Dump all public keys',
                               action='store_const', dest='dump_public_keys', const=True)
-    dump_options.add_argument('--dump-x509-certificates', help='Dump all X509 certificates',
+    dump_actions.add_argument('--dump-x509-certificates', help='Dump all X509 certificates',
                               action='store_const', dest='dump_x509_certificates', const=True)
 
     # Export private keys, public keys, or x509 certificates to disk.
-    export_args = arguments.add_argument_group('Export Options', description='Export records to files. Save location '
-                                                                             'is CWD, but can be overridden with --output / -o')
+    export_actions = arguments.add_argument_group('Export Actions',
+                                                  description='Export records to files. Save location '
+                                                              'is CWD, but can be overridden with --output / -o')
 
-    export_args.add_argument('--export-keychain-password-hash', help='Save the keychain password hash to disk',
-                             action='store_const', dest='export_keychain_password_hash', const=True)
-    export_args.add_argument('--export-generic-passwords', help='Save all generic passwords to disk',
-                             action='store_const', dest='export_generic_passwords', const=True)
-    export_args.add_argument('--export-internet-passwords', help='Save all internet passwords to disk',
-                             action='store_const', dest='export_internet_passwords', const=True)
-    export_args.add_argument('--export-appleshare-passwords', help='Save all appleshare passwords to disk',
-                             action='store_const', dest='export_appleshare_passwords', const=True)
-    export_args.add_argument('--export-private-keys', help='Save private keys to disk',
-                             action='store_const', dest='export_private_keys', const=True)
-    export_args.add_argument('--export-public-keys', help='Save public keys to disk',
-                             action='store_const', dest='export_public_keys', const=True)
-    export_args.add_argument('--export-x509-certificates', help='Save X509 certificates to disk',
-                             action='store_const', dest='export_x509_certificates', const=True)
-    export_args.add_argument('--export-all', '-e',
-                             help='Save records to disk',
-                             action='store_const', dest='export_all', const=True)
+    export_actions.add_argument('--export-keychain-password-hash', help='Save the keychain password hash to disk',
+                                action='store_const', dest='export_keychain_password_hash', const=True)
+    export_actions.add_argument('--export-generic-passwords', help='Save all generic passwords to disk',
+                                action='store_const', dest='export_generic_passwords', const=True)
+    export_actions.add_argument('--export-internet-passwords', help='Save all internet passwords to disk',
+                                action='store_const', dest='export_internet_passwords', const=True)
+    export_actions.add_argument('--export-appleshare-passwords', help='Save all appleshare passwords to disk',
+                                action='store_const', dest='export_appleshare_passwords', const=True)
+    export_actions.add_argument('--export-private-keys', help='Save private keys to disk',
+                                action='store_const', dest='export_private_keys', const=True)
+    export_actions.add_argument('--export-public-keys', help='Save public keys to disk',
+                                action='store_const', dest='export_public_keys', const=True)
+    export_actions.add_argument('--export-x509-certificates', help='Save X509 certificates to disk',
+                                action='store_const', dest='export_x509_certificates', const=True)
+    export_actions.add_argument('--export-all', '-e',
+                                help='Save records to disk',
+                                action='store_const', dest='export_all', const=True)
+
+    misc_actions = arguments.add_argument_group('Misc. Actions')
+
+    misc_actions.add_argument('--check-unlock-options', '-c',
+                              help='Only check to see if the provided unlock options work.'
+                                   'Exits 0 on success, 1 on failure.',
+                              action='store_const', dest='check_unlock', const=True)
 
     # Keychain Unlocking Arguments
     unlock_args = arguments.add_argument_group('Unlock Options')
@@ -1139,8 +1153,6 @@ if __name__ == "__main__":
     output_args.add_argument('-d', '--debug', help="Print debug information", action="store_const", dest="loglevel",
                              const=logging.DEBUG)
 
-    misc_args = arguments.add_argument_group('Miscellaneous')
-
     arguments.set_defaults(
         loglevel=logging.INFO,
         dump_all=False,
@@ -1159,6 +1171,7 @@ if __name__ == "__main__":
         export_public_keys=False,
         export_x509_certificates=False,
         export_all=False,
+        check_unlock=False,
         password_prompt=False,
         key_prompt=False,
         password=None,
@@ -1216,13 +1229,21 @@ if __name__ == "__main__":
             args.dump_x509_certificates or args.export_keychain_password_hash or \
             args.export_generic_passwords or args.export_internet_passwords \
             or args.export_appleshare_passwords or args.export_private_keys or args.export_public_keys or \
-            args.export_x509_certificates or args.dump_all):
+            args.export_x509_certificates or args.dump_all or args.export_all or args.check_unlock):
         logger.critical("No action specified.")
         exit(1)
 
     # Done parsing out input options, now actually do the work.
     keychain = Chainbreaker(args.keychain, unlock_password=args.password, unlock_key=args.key,
                             unlock_file=args.unlock_file)
+
+    if args.check_unlock:
+        if keychain.locked:
+            print("Invalid Unlock Options")
+            exit(1)
+        else:
+            print("Keychain Unlock Successful.")
+            exit(0)
 
     output = []
 
@@ -1231,6 +1252,7 @@ if __name__ == "__main__":
             {
                 'header': 'Keychain Password Hash',
                 'records': [keychain.dump_keychain_password_hash()],  # A little hackish, but whatever.
+                'write_to_console': args.dump_keychain_password_hash,
                 'write_to_disk': args.export_keychain_password_hash,
                 'write_directory': os.path.join(args.output)
             }

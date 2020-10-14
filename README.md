@@ -44,9 +44,10 @@ usage: chainbreaker.py [-h] [--dump-all] [--dump-keychain-password-hash]
                        [--export-internet-passwords]
                        [--export-appleshare-passwords] [--export-private-keys]
                        [--export-public-keys] [--export-x509-certificates]
-                       [--export-all] [--password-prompt]
-                       [--password PASSWORD] [--key-prompt] [--key KEY]
-                       [--unlock-file UNLOCK_FILE] [--output OUTPUT] [-q] [-d]
+                       [--export-all] [--check-unlock-options]
+                       [--password-prompt] [--password PASSWORD]
+                       [--key-prompt] [--key KEY] [--unlock-file UNLOCK_FILE]
+                       [--output OUTPUT] [-q] [-d]
                        keychain
 
 Dump items stored in an OSX Keychain
@@ -73,7 +74,7 @@ Dump Actions:
   --dump-x509-certificates
                         Dump all X509 certificates
 
-Export Options:
+Export Actions:
   Export records to files. Save location is CWD, but can be overridden with
   --output / -o
 
@@ -91,6 +92,11 @@ Export Options:
   --export-x509-certificates
                         Save X509 certificates to disk
   --export-all, -e      Save records to disk
+
+Misc. Actions:
+  --check-unlock-options, -c
+                        Only check to see if the provided unlock options
+                        work.Exits 0 on success, 1 on failure.
 
 Unlock Options:
   --password-prompt, -p
