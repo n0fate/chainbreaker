@@ -1130,7 +1130,7 @@ if __name__ == "__main__":
 
     misc_actions.add_argument('--check-unlock-options', '-c',
                               help='Only check to see if the provided unlock options work.'
-                                   'Exits 0 on success, 1 on failure.',
+                                   ' Exits 0 on success, 1 on failure.',
                               action='store_const', dest='check_unlock', const=True)
 
     # Keychain Unlocking Arguments
@@ -1239,10 +1239,10 @@ if __name__ == "__main__":
 
     if args.check_unlock:
         if keychain.locked:
-            print("Invalid Unlock Options")
+            logging.info("Invalid Unlock Options")
             exit(1)
         else:
-            print("Keychain Unlock Successful.")
+            logging.info("Keychain Unlock Successful.")
             exit(0)
 
     output = []
