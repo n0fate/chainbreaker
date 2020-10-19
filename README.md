@@ -82,7 +82,7 @@ Export Actions:
                         Save the keychain password hash to disk
   --export-generic-passwords
                         Save all generic passwords to disk
-  --export-internet-passwords
+  --export-internet-passwords fEx
                         Save all internet passwords to disk
   --export-appleshare-passwords
                         Save all appleshare passwords to disk
@@ -96,7 +96,7 @@ Export Actions:
 Misc. Actions:
   --check-unlock-options, -c
                         Only check to see if the provided unlock options
-                        work.Exits 0 on success, 1 on failure.
+                        work. Exits 0 on success, 1 on failure.
 
 Unlock Options:
   --password-prompt, -p
