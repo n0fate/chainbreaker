@@ -172,7 +172,7 @@ Keychain Password Hash
 0 Private Keys
 ```
 
-##Cracking the Keychain Hash using hashcat
+## Cracking the Keychain Hash using hashcat
 ### Hash Extraction
 The password used to encrypt a keychain can be dumped using the --dump-keychain-password-hash option.
 ```
