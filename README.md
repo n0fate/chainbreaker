@@ -121,54 +121,93 @@ Output Options:
 ## Example Usage
 ```
 ./chainbreaker.py -a --password TestPassword ./test_keychain.keychain
-Keychain Password Hash
-	$keychain$*7255a69abe21a28e1d2967265c9bba9c9bf4daf1*28dcfa41552db4eb*9dbb91712bb6a38f46e1b4335c334d444eb0c451e51fa02183eafe05c35310d76014bc04b699d420d8487d4452d067e5
+2020-11-12 15:58:18,925 - INFO - 
 
+ChainBreaker 2 - https://github.com/gaddie-3/chainbreaker
 
-1 Generic Passwords
-	[+] Generic Password Record
-	 [-] Create DateTime: 2020-09-24 23:34:14
-	 [-] Last Modified DateTime: 2020-09-29 21:54:55
-	 [-] Description: 
-	 [-] Creator: 
-	 [-] Type: 
-	 [-] Print Name: Stored Test Password
-	 [-] Alias: 
-	 [-] Account: TestUser
-	 [-] Service: Stored Test Password
-	 [-] Password: TestPasswordValue123!
-	
+2020-11-12 15:58:18,925 - INFO - Runtime Command: /Users/luke/dev/python_projects/chainbreaker_dev/chainbreaker.py --password=TestPassword -a /Users/luke/dev/python_projects/chainbreaker_dev/test_data/test_keychain.keychain
+2020-11-12 15:58:18,925 - INFO - Keychain: /Users/luke/dev/python_projects/chainbreaker_dev/test_data/test_keychain.keychain
+2020-11-12 15:58:18,925 - INFO - Keychain MD5: eb3abc06c22afa388ca522ea5aa032fc
+2020-11-12 15:58:18,925 - INFO - Keychain 256: 2d76f564ac24fa6a8a22adb6d5cb9b430032785b1ba3effa8ddea38222008441
+2020-11-12 15:58:18,925 - INFO - Dump Start: 2020-11-12 15:58:18.925479
+2020-11-12 15:58:19,245 - INFO - 1 Keychain Password Hash
+2020-11-12 15:58:19,245 - INFO - 	$keychain$*7255a69abe21a28e1d2967265c9bba9c9bf4daf1*28dcfa41552db4eb*9dbb91712bb6a38f46e1b4335c334d444eb0c451e51fa02183eafe05c35310d76014bc04b699d420d8487d4452d067e5
+2020-11-12 15:58:19,245 - INFO - 
+2020-11-12 15:58:19,245 - INFO - 2 Generic Passwords
+2020-11-12 15:58:20,306 - INFO - 	[+] Generic Password Record
+2020-11-12 15:58:20,306 - INFO - 	 [-] Create DateTime: 2020-10-13 23:01:17
+2020-11-12 15:58:20,306 - INFO - 	 [-] Last Modified DateTime: 2020-10-13 23:01:17
+2020-11-12 15:58:20,306 - INFO - 	 [-] Description: secure note
+2020-11-12 15:58:20,306 - INFO - 	 [-] Creator: 
+2020-11-12 15:58:20,306 - INFO - 	 [-] Type: note
+2020-11-12 15:58:20,307 - INFO - 	 [-] Print Name: Test Secure Note
+2020-11-12 15:58:20,307 - INFO - 	 [-] Alias: 
+2020-11-12 15:58:20,307 - INFO - 	 [-] Account: 
+2020-11-12 15:58:20,307 - INFO - 	 [-] Service: Test Secure Note
+2020-11-12 15:58:20,307 - INFO - 	 [-] Base64 Encoded Password: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPCFET0NUWVBFIHBsaXN0IFBVQkxJQyAiLS8vQXBwbGUvL0RURCBQTElTVCAxLjAvL0VOIiAiaHR0cDovL3d3dy5hcHBsZS5jb20vRFREcy9Qcm9wZXJ0eUxpc3QtMS4wLmR0ZCI+CjxwbGlzdCB2ZXJzaW9uPSIxLjAiPgo8ZGljdD4KCTxrZXk+Tk9URTwva2V5PgoJPHN0cmluZz5UaGlzIGlzIGEgdGVzdCBzZWN1cmUgbm90ZS4gSSBkb27igJl0IGtub3cgdGhhdCBDaGFpbmJyZWFrZXIgd2lsbCBiZSBhYmxlIHRvIHNlZSBpdOKApjwvc3RyaW5nPgoJPGtleT5SVEZEPC9rZXk+Cgk8ZGF0YT4KCWNuUm1aQUFBQUFBREFBQUFBZ0FBQUFjQUFBQlVXRlF1Y25SbUFRQUFBQzdUQVFBQUt3QUFBQUVBQUFETEFRQUFlMXh5CglkR1l4WEdGdWMybGNZVzV6YVdOd1p6RXlOVEpjWTI5amIyRnlkR1l5TlRFekNseGpiMk52WVhSbGVIUnpZMkZzYVc1bgoJTUZ4amIyTnZZWEJzWVhSbWIzSnRNSHRjWm05dWRIUmliRnhtTUZ4bWJtbHNYR1pqYUdGeWMyVjBNQ0JJWld4MlpYUnAKCVkyRk9aWFZsTFV4cFoyaDBPMzBLZTF4amIyeHZjblJpYkR0Y2NtVmtNalUxWEdkeVpXVnVNalUxWEdKc2RXVXlOVFU3CglYSEpsWkRCY1ozSmxaVzR3WEdKc2RXVXdPMzBLZTF3cVhHVjRjR0Z1WkdWa1kyOXNiM0owWW13N08xeGpjM055WjJKYwoJWXpCY1l6QmNZekJjWTI1aGJXVWdkR1Y0ZEVOdmJHOXlPMzBLWEhCaGNtUmNkSGcxTmpCY2RIZ3hNVEl3WEhSNE1UWTQKCU1GeDBlREl5TkRCY2RIZ3lPREF3WEhSNE16TTJNRngwZURNNU1qQmNkSGcwTkRnd1hIUjROVEEwTUZ4MGVEVTJNREJjCglkSGcyTVRZd1hIUjROamN5TUZ4d1lYSmthWEp1WVhSMWNtRnNYSEJoY25ScFoyaDBaVzVtWVdOMGIzSXdDZ3BjWmpCYwoJWm5NeU5pQmNZMll5SUZSb2FYTWdhWE1nWVNCMFpYTjBJSE5sWTNWeVpTQnViM1JsTGlCSklHUnZibHduT1RKMElHdHUKCWIzY2dkR2hoZENCRGFHRnBibUp5WldGclpYSWdkMmxzYkNCaVpTQmhZbXhsSUhSdklITmxaU0JwZEZ3bk9EVjlBUUFBCglBQ01BQUFBQkFBQUFCd0FBQUZSWVZDNXlkR1lRQUFBQXZUR0dYN1lCQUFBQUFBQUFBQUFBQUE9PQoJPC9kYXRhPgo8L2RpY3Q+CjwvcGxpc3Q+Cg==
+2020-11-12 15:58:20,307 - INFO - 	
+2020-11-12 15:58:20,307 - INFO - 
+2020-11-12 15:58:20,331 - INFO - 	[+] Generic Password Record
+2020-11-12 15:58:20,331 - INFO - 	 [-] Create DateTime: 2020-09-24 23:34:14
+2020-11-12 15:58:20,331 - INFO - 	 [-] Last Modified DateTime: 2020-09-29 21:54:55
+2020-11-12 15:58:20,331 - INFO - 	 [-] Description: 
+2020-11-12 15:58:20,332 - INFO - 	 [-] Creator: 
+2020-11-12 15:58:20,332 - INFO - 	 [-] Type: 
+2020-11-12 15:58:20,332 - INFO - 	 [-] Print Name: Stored Test Password
+2020-11-12 15:58:20,332 - INFO - 	 [-] Alias: 
+2020-11-12 15:58:20,332 - INFO - 	 [-] Account: TestUser
+2020-11-12 15:58:20,332 - INFO - 	 [-] Service: Stored Test Password
+2020-11-12 15:58:20,332 - INFO - 	 [-] Password: TestPasswordValue123!
+2020-11-12 15:58:20,332 - INFO - 	
+2020-11-12 15:58:20,332 - INFO - 
+2020-11-12 15:58:20,332 - INFO - 1 Internet Passwords
+2020-11-12 15:58:20,356 - INFO - 	[+] Internet Record
+2020-11-12 15:58:20,356 - INFO - 	 [-] Create DateTime: 2020-09-29 22:21:51
+2020-11-12 15:58:20,356 - INFO - 	 [-] Last Modified DateTime: 2020-09-29 22:21:51
+2020-11-12 15:58:20,356 - INFO - 	 [-] Description: 
+2020-11-12 15:58:20,356 - INFO - 	 [-] Comment: 
+2020-11-12 15:58:20,356 - INFO - 	 [-] Creator: 
+2020-11-12 15:58:20,356 - INFO - 	 [-] Type: 
+2020-11-12 15:58:20,356 - INFO - 	 [-] PrintName: example.com
+2020-11-12 15:58:20,356 - INFO - 	 [-] Alias: 
+2020-11-12 15:58:20,357 - INFO - 	 [-] Protected: 
+2020-11-12 15:58:20,357 - INFO - 	 [-] Account: TestUsername
+2020-11-12 15:58:20,357 - INFO - 	 [-] SecurityDomain: 
+2020-11-12 15:58:20,357 - INFO - 	 [-] Server: example.com
+2020-11-12 15:58:20,357 - INFO - 	 [-] Protocol Type: kSecProtocolTypeHTTPS
+2020-11-12 15:58:20,357 - INFO - 	 [-] Auth Type: kSecAuthenticationTypeDefault
+2020-11-12 15:58:20,357 - INFO - 	 [-] Port: 0
+2020-11-12 15:58:20,357 - INFO - 	 [-] Path: 
+2020-11-12 15:58:20,357 - INFO - 	 [-] Password: TestPassword123!
+2020-11-12 15:58:20,357 - INFO - 	
+2020-11-12 15:58:20,357 - INFO - 
+2020-11-12 15:58:20,357 - INFO - 0 Appleshare Passwords
+2020-11-12 15:58:20,357 - INFO - 0 Private Keys
+2020-11-12 15:58:20,357 - INFO - 0 Public Keys
+2020-11-12 15:58:20,357 - INFO - 1 x509 Certificates
+2020-11-12 15:58:20,357 - INFO - 	[+] X509 Certificate
+2020-11-12 15:58:20,357 - INFO - 	 [-] Print Name: Apple Root CA
+2020-11-12 15:58:20,358 - INFO - 	 [-] Certificate: MIIEuzCCA6OgAwIBAgIBAjANBgkqhkiG9w0BAQUFADBiMQswCQYDVQQGEwJVUzETMBEGA1UEChMKQXBwbGUgSW5jLjEmMCQGA1UECxMdQXBwbGUgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkxFjAUBgNVBAMTDUFwcGxlIFJvb3QgQ0EwHhcNMDYwNDI1MjE0MDM2WhcNMzUwMjA5MjE0MDM2WjBiMQswCQYDVQQGEwJVUzETMBEGA1UEChMKQXBwbGUgSW5jLjEmMCQGA1UECxMdQXBwbGUgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkxFjAUBgNVBAMTDUFwcGxlIFJvb3QgQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDkkakJH5HbHkdQ6wXtXnmELes2oldMVeyLGYne+Uts9QerIjAC6Bg++FAJ039BqJj50cpmnCRrEdCju+QbKsMflZ56DKRHi1vUFjczy8QPTc4UadHJGXL1XQ7Vf1+b8iUDulWPTV0N8WQ1IxVLFVkds5T39pyez1C6wVhQZ48ItCD3y6wsIG9wtj8BMIy3Q88PnT3zK0koGsj+zrW5DtleHNbLPbU6rfQPDgCSC7EhFi501TwN22IWq6NxkkdTVcGvL0Gz+PvjcM3mo0xFfh9Ma1CWQYnEdGILEINBhzOKgbEwWOxaBDKMaLOPHd5lc/9nXmW8Sdh2nzMUZaF3lMktAgMBAAGjggF6MIIBdjAOBgNVHQ8BAf8EBAMCAQYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUK9BpR5R2Cf70a40uQKb3R01/CF4wHwYDVR0jBBgwFoAUK9BpR5R2Cf70a40uQKb3R01/CF4wggERBgNVHSAEggEIMIIBBDCCAQAGCSqGSIb3Y2QFATCB8jAqBggrBgEFBQcCARYeaHR0cHM6Ly93d3cuYXBwbGUuY29tL2FwcGxlY2EvMIHDBggrBgEFBQcCAjCBthqBs1JlbGlhbmNlIG9uIHRoaXMgY2VydGlmaWNhdGUgYnkgYW55IHBhcnR5IGFzc3VtZXMgYWNjZXB0YW5jZSBvZiB0aGUgdGhlbiBhcHBsaWNhYmxlIHN0YW5kYXJkIHRlcm1zIGFuZCBjb25kaXRpb25zIG9mIHVzZSwgY2VydGlmaWNhdGUgcG9saWN5IGFuZCBjZXJ0aWZpY2F0aW9uIHByYWN0aWNlIHN0YXRlbWVudHMuMA0GCSqGSIb3DQEBBQUAA4IBAQBcNplMLXi37Yyb3PN3m/J20ncwT8EfhYOFG5k9RzfyqZtAjizUsZAS2L70c5vu0mQPy3lPNNiiPvl4/2vIB+x9OYOLUyDTOMSxv5pPCmv/K/xZpwUJfBdAVhEedNO3iyM7R6PVbyTi69G3cN8PReEnyvFteO3ntRcXqNx+IjXKJdXZD9Zr1KIkIxH3oayPc4FgxhtbCS+SsvhESPBgOJ4V9T0mZyCKM2r3DYLP3uujL/lTaltkwGMzd/c6ByxW69oPIQ7aunMZT7XZNn/Bh1XZp5m5MkL72NVxnn6hUrcbvZNCJBIqxw8dtk2cXmPIS4AXUKqK1drk/NAJBzewdXUh
+2020-11-12 15:58:20,358 - INFO - 	
+2020-11-12 15:58:20,358 - INFO - 
+2020-11-12 15:58:20,358 - INFO - 
 
+ChainBreaker 2 - https://github.com/gaddie-3/chainbreaker
 
-1 Internet Passwords
-	[+] Internet Record
-	 [-] Create DateTime: 2020-09-29 22:21:51
-	 [-] Last Modified DateTime: 2020-09-29 22:21:51
-	 [-] Description: 
-	 [-] Comment: 
-	 [-] Creator: 
-	 [-] Type: 
-	 [-] PrintName: example.com
-	 [-] Alias: 
-	 [-] Protected: 
-	 [-] Account: TestUsername
-	 [-] SecurityDomain: 
-	 [-] Server: example.com
-	 [-] Protocol Type: kSecProtocolTypeHTTPS
-	 [-] Auth Type: kSecAuthenticationTypeDefault
-	 [-] Port: 0
-	 [-] Path: 
-	 [-] Password: TestPassword123!
-	
-
-
-0 Appleshare Passwords
-
-
-0 Public Keys
-
-
-0 Private Keys
+2020-11-12 15:58:20,358 - INFO - Runtime Command: /Users/luke/dev/python_projects/chainbreaker_dev/chainbreaker.py --password=TestPassword -a /Users/luke/dev/python_projects/chainbreaker_dev/test_data/test_keychain.keychain
+2020-11-12 15:58:20,358 - INFO - Keychain: /Users/luke/dev/python_projects/chainbreaker_dev/test_data/test_keychain.keychain
+2020-11-12 15:58:20,358 - INFO - Keychain MD5: eb3abc06c22afa388ca522ea5aa032fc
+2020-11-12 15:58:20,358 - INFO - Keychain 256: 2d76f564ac24fa6a8a22adb6d5cb9b430032785b1ba3effa8ddea38222008441
+2020-11-12 15:58:20,358 - INFO - Dump Start: 2020-11-12 15:58:18.925479
+2020-11-12 15:58:20,358 - INFO - Dump Summary:
+2020-11-12 15:58:20,358 - INFO - 	1 Keychain Password Hash
+2020-11-12 15:58:20,358 - INFO - 	2 Generic Passwords
+2020-11-12 15:58:20,358 - INFO - 	1 Internet Passwords
+2020-11-12 15:58:20,358 - INFO - 	0 Appleshare Passwords
+2020-11-12 15:58:20,358 - INFO - 	0 Private Keys
+2020-11-12 15:58:20,359 - INFO - 	0 Public Keys
+2020-11-12 15:58:20,359 - INFO - 	1 x509 Certificates
+2020-11-12 15:58:20,359 - INFO - Dump End: 2020-11-12 15:58:20.358259
 ```
 
 ## Cracking the Keychain Hash using hashcat
