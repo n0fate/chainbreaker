@@ -125,8 +125,8 @@ Output Options:
 
 ChainBreaker 2 - https://github.com/gaddie-3/chainbreaker
 
-2020-11-12 15:58:18,925 - INFO - Runtime Command: /Users/luke/dev/python_projects/chainbreaker_dev/chainbreaker.py --password=TestPassword -a /Users/luke/dev/python_projects/chainbreaker_dev/test_data/test_keychain.keychain
-2020-11-12 15:58:18,925 - INFO - Keychain: /Users/luke/dev/python_projects/chainbreaker_dev/test_data/test_keychain.keychain
+2020-11-12 15:58:18,925 - INFO - Runtime Command: chainbreaker.py --password=TestPassword -a test_keychain.keychain
+2020-11-12 15:58:18,925 - INFO - Keychain: test_keychain.keychain
 2020-11-12 15:58:18,925 - INFO - Keychain MD5: eb3abc06c22afa388ca522ea5aa032fc
 2020-11-12 15:58:18,925 - INFO - Keychain 256: 2d76f564ac24fa6a8a22adb6d5cb9b430032785b1ba3effa8ddea38222008441
 2020-11-12 15:58:18,925 - INFO - Dump Start: 2020-11-12 15:58:18.925479
@@ -194,8 +194,8 @@ ChainBreaker 2 - https://github.com/gaddie-3/chainbreaker
 
 ChainBreaker 2 - https://github.com/gaddie-3/chainbreaker
 
-2020-11-12 15:58:20,358 - INFO - Runtime Command: /Users/luke/dev/python_projects/chainbreaker_dev/chainbreaker.py --password=TestPassword -a /Users/luke/dev/python_projects/chainbreaker_dev/test_data/test_keychain.keychain
-2020-11-12 15:58:20,358 - INFO - Keychain: /Users/luke/dev/python_projects/chainbreaker_dev/test_data/test_keychain.keychain
+2020-11-12 15:58:20,358 - INFO - Runtime Command: chainbreaker.py --password=TestPassword -a test_keychain.keychain
+2020-11-12 15:58:20,358 - INFO - Keychain: test_keychain.keychain
 2020-11-12 15:58:20,358 - INFO - Keychain MD5: eb3abc06c22afa388ca522ea5aa032fc
 2020-11-12 15:58:20,358 - INFO - Keychain 256: 2d76f564ac24fa6a8a22adb6d5cb9b430032785b1ba3effa8ddea38222008441
 2020-11-12 15:58:20,358 - INFO - Dump Start: 2020-11-12 15:58:18.925479
