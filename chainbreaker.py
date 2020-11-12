@@ -32,7 +32,6 @@ import base64
 import string
 import uuid
 
-
 class Chainbreaker(object):
     ATOM_SIZE = 4
     KEYCHAIN_SIGNATURE = "kych"
@@ -732,7 +731,7 @@ class Chainbreaker(object):
             # Finish exporting the record.
             try:
                 with open(file_path, 'wb') as fp:
-                    self.logger.info('Exported: %s' % file_path)
+                    self.logger.info('\t [-] Exported: %s' % file_path)
                     fp.write(export_content)
                     return True
             except OSError, e:
@@ -806,7 +805,7 @@ class Chainbreaker(object):
 
         @property
         def FileName(self):
-            return self.PrintName
+            return "".join(x for x in self.PrintName if x.isalnum())
 
         @property
         def FileExt(self):
@@ -859,7 +858,7 @@ class Chainbreaker(object):
 
         @property
         def FileName(self):
-            return self.PrintName
+            return "".join(x for x in self.PrintName if x.isalnum())
 
         @property
         def FileExt(self):
@@ -901,7 +900,7 @@ class Chainbreaker(object):
 
         @property
         def FileName(self):
-            return self.PrintName
+            return "".join(x for x in self.PrintName if x.isalnum())
 
         @property
         def FileExt(self):
@@ -951,7 +950,7 @@ class Chainbreaker(object):
 
         @property
         def FileName(self):
-            return self.PrintName
+            return "".join(x for x in self.PrintName if x.isalnum())
 
         @property
         def FileExt(self):
@@ -1103,6 +1102,8 @@ if __name__ == "__main__":
     import getpass
     import sys
     import os
+    import datetime
+    import hashlib
 
     arguments = argparse.ArgumentParser(description='Dump items stored in an OSX Keychain')
 
@@ -1175,7 +1176,6 @@ if __name__ == "__main__":
     # Output arguments
     output_args = arguments.add_argument_group('Output Options')
     output_args.add_argument('--output', '-o', help='Directory to output exported records to.')
-    output_args.add_argument('-q', '--quiet', help="Suppress all output", action="store_true", default=False)
     output_args.add_argument('-d', '--debug', help="Print debug information", action="store_const", dest="loglevel",
                              const=logging.DEBUG)
 
@@ -1203,7 +1203,6 @@ if __name__ == "__main__":
         password=None,
         key=None,
         unlock_file=None,
-        quiet=False,
     )
 
     args = arguments.parse_args()
@@ -1215,14 +1214,11 @@ if __name__ == "__main__":
         args.key = getpass.getpass('Unlock Key: ')
 
     # create logger
-    logger = logging.getLogger('Chainbreaker')
-    logger.setLevel(args.loglevel)
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
+                        level=args.loglevel,
+                        stream=sys.stdout)
 
-    if not args.quiet:
-        console_handler = logging.StreamHandler(stream=sys.stdout)
-        console_handler.setLevel(args.loglevel)
-        console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-        logger.addHandler(console_handler)
+    logger = logging.getLogger('Chainbreaker')
 
     if args.output:
         if not os.path.exists(args.output):
@@ -1231,10 +1227,7 @@ if __name__ == "__main__":
             except OSError as e:
                 logger.critical("Unable to create output directory: %s" % args.output)
                 exit(1)
-
-        output_handler = logging.FileHandler(os.path.join(args.output, 'output.log'))
-        output_handler.setLevel(args.loglevel)
-        logger.addHandler(output_handler)
+        logger.addHandler(logging.FileHandler(os.path.join(args.output, 'output.log'), mode='w'))
     else:
         args.output = os.getcwd()
 
@@ -1259,16 +1252,35 @@ if __name__ == "__main__":
         logger.critical("No action specified.")
         exit(1)
 
+    # Calculate the MD5 and SHA256 of the input keychain file.
+    keychain_md5 = hashlib.md5(args.keychain).hexdigest()
+    keychain_sha256 = hashlib.sha256(args.keychain).hexdigest()
+
+    # Print out some summary info before we actually start doing any work.
+    summary_output = [
+        "\n\nChainBreaker 2 - https://github.com/gaddie-3/chainbreaker\n",
+        "Runtime Command: %s" % ' '.join(sys.argv),
+        "Keychain: %s" % args.keychain,
+        "Keychain MD5: %s" % keychain_md5,
+        "Keychain 256: %s" % keychain_sha256,
+        "Dump Start: %s" % datetime.datetime.now(),
+    ]
+
+    for line in summary_output:
+        logger.info(line)
+
+    summary_output.append("Dump Summary:")
+
     # Done parsing out input options, now actually do the work.
     keychain = Chainbreaker(args.keychain, unlock_password=args.password, unlock_key=args.key,
                             unlock_file=args.unlock_file)
 
     if args.check_unlock:
         if keychain.locked:
-            logging.info("Invalid Unlock Options")
+            logger.info("Invalid Unlock Options")
             exit(1)
         else:
-            logging.info("Keychain Unlock Successful.")
+            logger.info("Keychain Unlock Successful.")
             exit(0)
 
     output = []
@@ -1349,7 +1361,11 @@ if __name__ == "__main__":
         for record_collection in output:
             if 'records' in record_collection:
                 number_records = len(record_collection['records'])
-                logger.info("%s %s" % (len(record_collection['records']), record_collection['header']))
+                collection_summary = "%s %s" % (len(record_collection['records']), record_collection['header'])
+                logger.info(collection_summary)
+
+                summary_output.append("\t%s" % collection_summary)
+
                 for record in record_collection['records']:
                     if record_collection.get('write_to_console', False):
                         for line in str(record).split('\n'):
@@ -1357,6 +1373,17 @@ if __name__ == "__main__":
                     if record_collection.get('write_to_disk', False):
                         record.write_to_disk(record_collection.get('write_directory', args.output))
                     logger.info("")
+
+        summary_output.append("Dump End: %s" % datetime.datetime.now())
+
+        if any(x.get('write_to_disk', False) for x in output):
+            with open(os.path.join(args.output, "summary.txt"), 'w') as summary_fp:
+                for line in summary_output:
+                    summary_fp.write("%s\n" % line)
+                    logger.info(line)
+        else:
+            for line in summary_output:
+                logger.info(line)
 
     except KeyboardInterrupt:
         exit(0)

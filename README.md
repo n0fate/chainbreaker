@@ -47,7 +47,7 @@ usage: chainbreaker.py [-h] [--dump-all] [--dump-keychain-password-hash]
                        [--export-all] [--check-unlock-options]
                        [--password-prompt] [--password PASSWORD]
                        [--key-prompt] [--key KEY] [--unlock-file UNLOCK_FILE]
-                       [--output OUTPUT] [-q] [-d]
+                       [--output OUTPUT] [-d]
                        keychain
 
 Dump items stored in an OSX Keychain
@@ -82,7 +82,7 @@ Export Actions:
                         Save the keychain password hash to disk
   --export-generic-passwords
                         Save all generic passwords to disk
-  --export-internet-passwords fEx
+  --export-internet-passwords
                         Save all internet passwords to disk
   --export-appleshare-passwords
                         Save all appleshare passwords to disk
@@ -95,8 +95,8 @@ Export Actions:
 
 Misc. Actions:
   --check-unlock-options, -c
-                        Only check to see if the provided unlock options
-                        work. Exits 0 on success, 1 on failure.
+                        Only check to see if the provided unlock options work.
+                        Exits 0 on success, 1 on failure.
 
 Unlock Options:
   --password-prompt, -p
@@ -114,7 +114,6 @@ Unlock Options:
 Output Options:
   --output OUTPUT, -o OUTPUT
                         Directory to output exported records to.
-  -q, --quiet           Suppress all output
   -d, --debug           Print debug information
 ```
 
