@@ -120,7 +120,7 @@ Output Options:
 
 ## Example Usage
 ```
-./chainbreaker.py -a --password TestPassword ./test_keychain.keychain
+./chainbreaker.py --password=TestPassword -a test_keychain.keychain
 2020-11-12 15:58:18,925 - INFO - 
 
 ChainBreaker 2 - https://github.com/gaddie-3/chainbreaker
