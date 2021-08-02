@@ -24,12 +24,17 @@ from schema import *
 from schema import _APPL_DB_HEADER, _APPL_DB_SCHEMA, _TABLE_HEADER, _DB_BLOB, _GENERIC_PW_HEADER, \
     _KEY_BLOB_REC_HEADER, _KEY_BLOB, _SSGP, _INTERNET_PW_HEADER, _APPLE_SHARE_HEADER, _X509_CERT_HEADER, _SECKEY_HEADER, \
     _UNLOCK_BLOB, _KEYCHAIN_TIME, _INT, _FOUR_CHAR_CODE, _LV, _TABLE_ID, _RECORD_OFFSET
-from pyDes import TripleDES, CBC
+
+from hashlib import pbkdf2_hmac
+# pip install pycryptodome for Crypto.Cipher
+from Crypto.Cipher import DES3
+
 from binascii import unhexlify, hexlify
 import logging
 import base64
 import string
 import uuid
+
 
 class Chainbreaker(object):
     ATOM_SIZE = 4
@@ -340,7 +345,7 @@ class Chainbreaker(object):
 
     # ## Documents : http://www.opensource.apple.com/source/securityd/securityd-55137.1/doc/BLOBFORMAT
     def _generate_master_key(self, pw):
-        return str(PBKDF2(pw, str(bytearray(self.dbblob.Salt)), 1000, Chainbreaker.KEYLEN))
+        return pbkdf2_hmac('sha1', str.encode(pw), bytearray(self.dbblob.Salt), 1000, dklen=Chainbreaker.KEYLEN)
 
     # ## find DBBlob and extract Wrapping key
     def _find_wrapping_key(self, master):
@@ -632,18 +637,18 @@ class Chainbreaker(object):
         if len(data) % Chainbreaker.BLOCKSIZE != 0:
             return ''
 
-        cipher = TripleDES(key, CBC, str(bytearray(iv)))
+        cipher = DES3.new(key, DES3.MODE_CBC, iv=bytearray(iv))
 
         plain = cipher.decrypt(data)
 
         # now check padding
-        pad = ord(plain[-1])
+        pad = plain[-1]
         if pad > 8:
             logger.debug("Bad padding byte. Keychain password might be incorrect.")
             return ''
 
         for z in plain[-pad:]:
-            if ord(z) != pad:
+            if z != pad:
                 logger.debug("Bad padding byte. Keychain password might be incorrect.")
                 return ''
 
@@ -1252,8 +1257,8 @@ if __name__ == "__main__":
         exit(1)
 
     # Calculate the MD5 and SHA256 of the input keychain file.
-    keychain_md5 = hashlib.md5(args.keychain).hexdigest()
-    keychain_sha256 = hashlib.sha256(args.keychain).hexdigest()
+    keychain_md5 = hashlib.md5(args.keychain.encode('utf-8')).hexdigest()
+    keychain_sha256 = hashlib.sha256(args.keychain.encode('utf-8')).hexdigest()
 
     # Print out some summary info before we actually start doing any work.
     summary_output = [
