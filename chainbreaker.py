@@ -20,7 +20,6 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 import struct
-from pbkdf2 import PBKDF2
 from schema import *
 from schema import _APPL_DB_HEADER, _APPL_DB_SCHEMA, _TABLE_HEADER, _DB_BLOB, _GENERIC_PW_HEADER, \
     _KEY_BLOB_REC_HEADER, _KEY_BLOB, _SSGP, _INTERNET_PW_HEADER, _APPLE_SHARE_HEADER, _X509_CERT_HEADER, _SECKEY_HEADER, \
@@ -203,7 +202,7 @@ class Chainbreaker(object):
         table_list = []
         schema_info = _APPL_DB_SCHEMA(self.kc_buffer[offset:offset + _APPL_DB_SCHEMA.STRUCT.size])
 
-        for i in xrange(schema_info.TableCount):
+        for i in range(schema_info.TableCount):
             base_addr = _APPL_DB_HEADER.STRUCT.size + _APPL_DB_SCHEMA.STRUCT.size
             table_list.append(_TABLE_ID(self.kc_buffer[base_addr + (Chainbreaker.ATOM_SIZE * i):base_addr + (
                     Chainbreaker.ATOM_SIZE * i) + Chainbreaker.ATOM_SIZE]).Value)
@@ -244,7 +243,7 @@ class Chainbreaker(object):
     # Returns a dict of table indexes keyed off of the TableId
     def _get_table_name_to_list(self, record_list, table_list):
         table_dict = {}
-        for count in xrange(len(record_list)):
+        for count in range(len(record_list)):
             table_metadata, generic_list = self._get_table(table_list[count])
             table_dict[table_metadata.TableId] = count  # extract valid table list
 
@@ -734,7 +733,7 @@ class Chainbreaker(object):
                     self.logger.info('\t [-] Exported: %s' % file_path)
                     fp.write(export_content)
                     return True
-            except OSError, e:
+            except OSError as e:
                 self.logger.critical('Exception while attempting to export %s: %s' % (file_path, e))
 
         @property
