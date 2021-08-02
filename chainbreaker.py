@@ -1262,7 +1262,7 @@ if __name__ == "__main__":
 
     # Print out some summary info before we actually start doing any work.
     summary_output = [
-        "\n\nChainBreaker 2 - https://github.com/gaddie-3/chainbreaker\n",
+        "Python3 Compatible version! \n Forked from https://github.com/n0fate/chainbreaker , thanks to https://github.com/gaddie-3/chainbreaker",
         "Runtime Command: %s" % ' '.join(sys.argv),
         "Keychain: %s" % args.keychain,
         "Keychain MD5: %s" % keychain_md5,
