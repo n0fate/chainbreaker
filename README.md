@@ -1,5 +1,6 @@
-Chainbreaker2
+Chainbreaker2 - python 3
 ============
+An updated version of the Chainbreaker2 repository, by making chainbreaker2 compatible for python 3.
 
 Chainbreaker can be used to extract the following types of information from an OSX keychain in a forensically sound manner: 
 
