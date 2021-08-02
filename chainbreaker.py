@@ -309,9 +309,9 @@ class Chainbreaker(object):
         str_length = _INT(self.kc_buffer[base_addr + pcol:base_addr + pcol + 4]).Value
         # 4byte arrangement
         if (str_length % 4) == 0:
-            real_str_len = (str_length / 4) * 4
+            real_str_len = int((str_length / 4) * 4)
         else:
-            real_str_len = ((str_length / 4) + 1) * 4
+            real_str_len = int(((str_length / 4) + 1) * 4)
 
         try:
             data = _LV(self.kc_buffer[base_addr + pcol + 4:base_addr + pcol + 4 + real_str_len], real_str_len).Value
