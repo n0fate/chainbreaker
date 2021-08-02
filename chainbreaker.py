@@ -1275,7 +1275,7 @@ if __name__ == "__main__":
 
     summary_output.append("Dump Summary:")
 
-    # Done parsing out input options, now actually do the work.
+    # Done parsing our input options, now actually do the work.
     keychain = Chainbreaker(args.keychain, unlock_password=args.password, unlock_key=args.key,
                             unlock_file=args.unlock_file)
 
