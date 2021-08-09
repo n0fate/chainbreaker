@@ -551,8 +551,6 @@ class Chainbreaker(object):
             ssgp=ssgp,
             dbkey=dbkey)
 
-        return record
-
     def _get_base_address(self, table_name, offset=None):
         base_address = _APPL_DB_HEADER.STRUCT.size + self._get_table_offset(table_name)
         if offset:
