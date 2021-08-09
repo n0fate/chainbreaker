@@ -914,7 +914,9 @@ class Chainbreaker(object):
             try:
                 if self.SSGP and self.DBKey:
                     self._password = Chainbreaker._kcdecrypt(self.DBKey, self.SSGP.IV, self.SSGP.EncryptedPassword)
-                    if not all(c in string.printable for c in self._password):
+                    try:
+                        self._password = self._password.decode('utf8')
+                    except UnicodeDecodeError:
                         self._password = base64.b64encode(self._password)
                         self.password_b64_encoded = True
                     self.locked = False
