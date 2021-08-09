@@ -331,10 +331,7 @@ class Chainbreaker(object):
 
         # now we handle the unwrapping. we need to take the first 32 bytes,
         # and reverse them.
-        revplain = ''
-        for i in range(len(plain)):
-            revplain += plain[len(plain) - 1 - i]
-
+        revplain = bytes(reversed(plain[0:32]))
         # now the real key gets found. */
         plain = Chainbreaker._kcdecrypt(self.db_key, iv, revplain)
 
@@ -684,11 +681,8 @@ class Chainbreaker(object):
             return ''
 
         # now we handle the unwrapping. we need to take the first 32 bytes,
-        # and reverse them.
-        revplain = ''
-        for i in range(32):
-            revplain += plain[31 - i]
-
+        # and reverse them.)
+        revplain = bytes(reversed(plain[0:32]))
         # now the real key gets found. */
         plain = Chainbreaker._kcdecrypt(dbkey, iv, revplain)
 
