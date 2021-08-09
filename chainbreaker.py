@@ -326,7 +326,7 @@ class Chainbreaker(object):
     def _private_key_decryption(self, encryptedblob, iv):
         plain = Chainbreaker._kcdecrypt(self.db_key, Chainbreaker.MAGIC_CMS_IV, encryptedblob)
 
-        if plain.__len__() == 0:
+        if len(plain) == 0:
             return '', ''
 
         # now we handle the unwrapping. we need to take the first 32 bytes,
@@ -353,7 +353,7 @@ class Chainbreaker(object):
         # decrypt the key
         plain = Chainbreaker._kcdecrypt(master, self.dbblob.IV, ciphertext)
 
-        if plain.__len__() < Chainbreaker.KEYLEN:
+        if len(plain) < Chainbreaker.KEYLEN:
             return ''
 
         dbkey = plain[:Chainbreaker.KEYLEN]
@@ -677,7 +677,7 @@ class Chainbreaker(object):
         # magicCmsIV = unhexlify('4adda22c79e82105')
         plain = Chainbreaker._kcdecrypt(dbkey, Chainbreaker.MAGIC_CMS_IV, encryptedblob)
 
-        if plain.__len__() == 0:
+        if len(plain) == 0:
             return ''
 
         # now we handle the unwrapping. we need to take the first 32 bytes,
