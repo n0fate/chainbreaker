@@ -171,6 +171,10 @@ class Chainbreaker(object):
 
             if self.kc_buffer:
                 self.header = _APPL_DB_HEADER(self.kc_buffer[:_APPL_DB_HEADER.STRUCT.size])
+                if self.header.Signature == b'SQLi':
+                    raise TypeError('File header appears to be an SQLite database. '
+                                    'Parsing files like keychain-2.db is currently unsupported.')
+
                 self.schema_info, self.table_list = self._get_schema_info(self.header.SchemaOffset)
                 self.table_metadata, self.record_list = self._get_table(self.table_list[0])
                 self.table_count, self.table_enum = self._get_table_name_to_list(self.record_list, self.table_list)
@@ -182,6 +186,8 @@ class Chainbreaker(object):
 
         except OSError as e:
             self.logger.critical("Unable to read keychain: %s" % e)
+        except TypeError as e:
+            self.logger.debug("Invalid type to parse keychain. Currently unsupported.")
 
     # Simple check to make sure the keychain we're looking at is valid.
     # A valid keychain begins with "kych"
