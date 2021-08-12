@@ -40,7 +40,7 @@ import uuid
 
 class Chainbreaker(object):
     ATOM_SIZE = 4
-    KEYCHAIN_SIGNATURE = "kych"
+    KEYCHAIN_SIGNATURE = b'kych'
     BLOCKSIZE = 8
     KEYLEN = 24
     MAGIC_CMS_IV = unhexlify('4adda22c79e82105')
@@ -75,9 +75,6 @@ class Chainbreaker(object):
         self.db_key = None
 
         self.filepath = filepath
-
-        if not self._is_valid_keychain():
-            self.logger.warning('Keychain signature does not match. are you sure this is a valid keychain file?')
 
         self.unlock_password = unlock_password
         self.unlock_key = unlock_key
@@ -171,9 +168,10 @@ class Chainbreaker(object):
 
             if self.kc_buffer:
                 self.header = _APPL_DB_HEADER(self.kc_buffer[:_APPL_DB_HEADER.STRUCT.size])
-                if self.header.Signature == b'SQLi':
-                    raise TypeError('File header appears to be an SQLite database. '
-                                    'Parsing files like keychain-2.db is currently unsupported.')
+                # I noticed the chainbreaker module does not parse keychain-2.db files which have an SQL header.
+                # We may need to look into that in the future.
+                if not self._is_valid_keychain():
+                    raise ValueError(f'Header signature is not {b"keyc"} but {self.header.Signature} for file: \n {self.filepath}')
 
                 self.schema_info, self.table_list = self._get_schema_info(self.header.SchemaOffset)
                 self.table_metadata, self.record_list = self._get_table(self.table_list[0])
@@ -186,8 +184,6 @@ class Chainbreaker(object):
 
         except OSError as e:
             self.logger.critical("Unable to read keychain: %s" % e)
-        except TypeError as e:
-            self.logger.debug("Invalid type to parse keychain. Currently unsupported.")
 
     # Simple check to make sure the keychain we're looking at is valid.
     # A valid keychain begins with "kych"
