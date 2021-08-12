@@ -15,13 +15,14 @@ setup(
     license='GPL-2.0',
     url='https://github.com/GingerGeneste/chainbreaker',
     description='Extract information from OSX keychain files',
+    #packages = find_packages(),
     classifiers=[
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
     ],
-    py_modules=["src"],
-    package_dir={'' : 'src'}
+    py_modules=["chainbreaker", "schema", "results", "logging_config", "args_control"],
+    package_dir={'' : 'chainbreaker'}
 
 )

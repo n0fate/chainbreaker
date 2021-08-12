@@ -28,7 +28,6 @@ import args_control
 import results
 from logging_config import LOGGER as logger
 
-import sys
 import os
 from hashlib import pbkdf2_hmac, md5, sha256
 # pip install pycryptodome for Crypto.Cipher
@@ -36,7 +35,6 @@ from Crypto.Cipher import DES3
 
 from binascii import unhexlify, hexlify
 import base64
-import string
 import uuid
 
 
