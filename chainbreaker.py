@@ -149,9 +149,13 @@ class Chainbreaker(object):
         try:
             table_meta, private_key_list = self._get_table_from_type(CSSM_DL_DB_RECORD_PRIVATE_KEY)
             for i, private_key_offset in enumerate(private_key_list, 1):
+              try:
+                print "private_key_offset", self._get_private_key_record(private_key_offset)
                 entries.append(
                     self._get_private_key_record(private_key_offset))
 
+              except Exception as e:
+                self.logger.warning(e)
         except KeyError:
             self.logger.warning('[!] Private Key Table is not available')
         return entries
@@ -550,6 +554,10 @@ class Chainbreaker(object):
         return record
 
     def _get_base_address(self, table_name, offset=None):
+        if table_name == 23972:
+            table_name = 16
+        if table_name == 30912:
+            table_name = 16
         base_address = _APPL_DB_HEADER.STRUCT.size + self._get_table_offset(table_name)
         if offset:
             base_address += offset
