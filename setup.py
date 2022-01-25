@@ -9,7 +9,7 @@ dependencies = [
 
 setup(
     name='chainbreaker',
-    version='2021.08.02',
+    version='3.0.0',
     author='n0fate',
     author_email=codecs.encode('80008322+TvatreTrarfgr@hfref.abercyl.tvguho.pbz', 'rot-13'),
     license='GPL-2.0',
