@@ -5,6 +5,7 @@ import os
 
 logger = logging.getLogger(__name__)
 
+
 def setup_argsparse():
     arguments = argparse.ArgumentParser(description='Dump items stored in an OSX Keychain')
 
@@ -15,8 +16,8 @@ def setup_argsparse():
     dump_actions = arguments.add_argument_group('Dump Actions')
     dump_actions.add_argument('--dump-all', '-a', help='Dump records to the console window.',
                               action='store_const', dest='dump_all', const=True)
-    dump_actions.add_argument('--dump-keychain-password-hash',
-                              help='Dump the keychain password hash in a format suitable for hashcat or John The Ripper',
+    dump_actions.add_argument('--dump-keychain-password-hash', help='Dump the keychain password'
+                              'hash in a format suitable for hashcat or John The Ripper',
                               action='store_const', dest='dump_keychain_password_hash', const=True)
     dump_actions.add_argument('--dump-generic-passwords', help='Dump all generic passwords',
                               action='store_const', dest='dump_generic_passwords', const=True)
@@ -108,13 +109,14 @@ def setup_argsparse():
 
     return arguments.parse_args()
 
+
 def set_output_dir(args):
     if args.output:
         if not os.path.exists(args.output):
             try:
                 os.makedirs(args.output)
                 return args.output
-            except OSError as e:
+            except OSError:
                 logger.critical("Unable to create output directory: %s" % args.output)
                 exit(1)
         logger.addHandler(logging.FileHandler(os.path.join(args.output, 'output.log'), mode='w'))
@@ -148,12 +150,23 @@ def args_prompt_input(args):
 
 
 def check_args_no_action(args):
-    if not (args.dump_keychain_password_hash or args.dump_generic_passwords or args.dump_internet_passwords \
-            or args.dump_appleshare_passwords or args.dump_public_keys or args.dump_private_keys or \
-            args.dump_x509_certificates or args.export_keychain_password_hash or \
-            args.export_generic_passwords or args.export_internet_passwords \
-            or args.export_appleshare_passwords or args.export_private_keys or args.export_public_keys or \
-            args.export_x509_certificates or args.dump_all or args.export_all or args.check_unlock):
+    if not (args.check_unlock
+            or args.dump_all
+            or args.dump_appleshare_passwords
+            or args.dump_generic_passwords
+            or args.dump_internet_passwords
+            or args.dump_keychain_password_hash
+            or args.dump_private_keys
+            or args.dump_public_keys
+            or args.dump_x509_certificates
+            or args.export_all
+            or args.export_appleshare_passwords
+            or args.export_generic_passwords
+            or args.export_internet_passwords
+            or args.export_keychain_password_hash
+            or args.export_private_keys
+            or args.export_public_keys
+            or args.export_x509_certificates):
         logger.critical("No action specified.")
         exit(1)
 

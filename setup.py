@@ -1,6 +1,6 @@
 import codecs
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 dependencies = [
     'argparse',
@@ -22,7 +22,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
     ],
-    entry_points = {
+    entry_points={
         'console_scripts': ['chainbreaker=chainbreaker.command_line:main'],
     },
     install_requires=dependencies,

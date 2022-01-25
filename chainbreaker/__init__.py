@@ -19,41 +19,52 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
-import struct
-from chainbreaker import args_control, results
-from chainbreaker.schema import *
-
-from chainbreaker.schema import _APPLE_SHARE_HEADER, \
-                                _APPL_DB_HEADER, \
-                                _APPL_DB_SCHEMA, \
-                                _COMMON_BLOB,\
-                                _DB_BLOB, \
-                                _DB_PARAMETERS, \
-                                _FOUR_CHAR_CODE, \
-                                _GENERIC_PW_HEADER, \
-                                _INT, \
-                                _INTERNET_PW_HEADER, \
-                                _KEYCHAIN_TIME, \
-                                _KEY_BLOB, \
-                                _KEY_BLOB_REC_HEADER, \
-                                _LV, \
-                                _RECORD_OFFSET, \
-                                _SECKEY_HEADER, \
-                                _SSGP, \
-                                _TABLE_HEADER, \
-                                _TABLE_ID, \
-                                _UNLOCK_BLOB, \
-                                _X509_CERT_HEADER
-
+import base64
+from binascii import hexlify, unhexlify
+from hashlib import md5, pbkdf2_hmac, sha256
+import logging
 import os
-from hashlib import pbkdf2_hmac, md5, sha256
-# pip install pycryptodome for Crypto.Cipher
+import struct
+import sys
+import uuid
+
 from Crypto.Cipher import DES3
 
-from binascii import unhexlify, hexlify
-import base64
-import uuid
-import logging
+from chainbreaker import args_control, results
+from chainbreaker.schema import (_APPL_DB_HEADER,
+                                 _APPL_DB_SCHEMA,
+                                 _APPLE_SHARE_HEADER,
+                                 _DB_BLOB,
+                                 _FOUR_CHAR_CODE,
+                                 _GENERIC_PW_HEADER,
+                                 _INT,
+                                 _INTERNET_PW_HEADER,
+                                 _KEY_BLOB,
+                                 _KEY_BLOB_REC_HEADER,
+                                 _KEYCHAIN_TIME,
+                                 _LV,
+                                 _RECORD_OFFSET,
+                                 _SECKEY_HEADER,
+                                 _SSGP,
+                                 _TABLE_HEADER,
+                                 _TABLE_ID,
+                                 _UNLOCK_BLOB,
+                                 _X509_CERT_HEADER,
+                                 AUTH_TYPE,
+                                 CSSM_ALGORITHMS,
+                                 CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD,
+                                 CSSM_DL_DB_RECORD_GENERIC_PASSWORD,
+                                 CSSM_DL_DB_RECORD_INTERNET_PASSWORD,
+                                 CSSM_DL_DB_RECORD_METADATA,
+                                 CSSM_DL_DB_RECORD_PRIVATE_KEY,
+                                 CSSM_DL_DB_RECORD_PUBLIC_KEY,
+                                 CSSM_DL_DB_RECORD_SYMMETRIC_KEY,
+                                 CSSM_DL_DB_RECORD_X509_CERTIFICATE,
+                                 KEY_TYPE,
+                                 PROTOCOL_TYPE,
+                                 SECURE_STORAGE_GROUP,
+                                 STD_APPLE_ADDIN_MODULE,
+                                 )
 
 logger = logging.getLogger(__name__)
 
@@ -191,7 +202,8 @@ class Chainbreaker(object):
                 # I noticed the chainbreaker module does not parse keychain-2.db files which have an SQL header.
                 # We may need to look into that in the future.
                 if not self._is_valid_keychain():
-                    raise ValueError(f'Header signature is not {Chainbreaker.KEYCHAIN_SIGNATURE} but {self.header.Signature} for file: \n {self.filepath}')
+                    raise ValueError(f'Header signature is not {Chainbreaker.KEYCHAIN_SIGNATURE}'
+                                     f'but {self.header.Signature} for file: \n {self.filepath}')
 
                 self.schema_info, self.table_list = self._get_schema_info(self.header.SchemaOffset)
                 self.table_metadata, self.record_list = self._get_table(self.table_list[0])
@@ -233,8 +245,10 @@ class Chainbreaker(object):
 
         for i in range(schema_info.TableCount):
             base_addr = _APPL_DB_HEADER.STRUCT.size + _APPL_DB_SCHEMA.STRUCT.size
-            table_list.append(_TABLE_ID(self.kc_buffer[base_addr + (Chainbreaker.ATOM_SIZE * i):base_addr + (
-                    Chainbreaker.ATOM_SIZE * i) + Chainbreaker.ATOM_SIZE]).Value)
+            table_list.append(_TABLE_ID(self.kc_buffer[base_addr
+                                                       + (Chainbreaker.ATOM_SIZE * i):base_addr
+                                                       + (Chainbreaker.ATOM_SIZE * i)
+                                                       + Chainbreaker.ATOM_SIZE]).Value)
 
         return schema_info, table_list
 
@@ -258,9 +272,10 @@ class Chainbreaker(object):
         record_count = 0
         offset = 0
         while table_metadata.RecordCount != record_count:
-            record_offset = _RECORD_OFFSET(self.kc_buffer[
-                                           record_offset_base + (Chainbreaker.ATOM_SIZE * offset):record_offset_base + (
-                                                   Chainbreaker.ATOM_SIZE * offset) + Chainbreaker.ATOM_SIZE]).Value
+            record_offset = _RECORD_OFFSET(self.kc_buffer[record_offset_base
+                                                          + (Chainbreaker.ATOM_SIZE * offset):record_offset_base
+                                                          + (Chainbreaker.ATOM_SIZE * offset)
+                                                          + Chainbreaker.ATOM_SIZE]).Value
 
             if (record_offset != 0x00) and (record_offset % 4 == 0):
                 record_list.append(record_offset)
@@ -285,12 +300,16 @@ class Chainbreaker(object):
         key_blob_record_header = _KEY_BLOB_REC_HEADER(
             self.kc_buffer[base_addr:base_addr + _KEY_BLOB_REC_HEADER.STRUCT.size])
 
-        record = self.kc_buffer[
-                 base_addr + _KEY_BLOB_REC_HEADER.STRUCT.size:base_addr + key_blob_record_header.RecordSize]
+        record = self.kc_buffer[base_addr
+                                + _KEY_BLOB_REC_HEADER.STRUCT.size:base_addr
+                                + key_blob_record_header.RecordSize]
 
         key_blob_record = _KEY_BLOB(record[:+_KEY_BLOB.STRUCT.size])
 
-        if SECURE_STORAGE_GROUP != record[key_blob_record.TotalLength + 8:key_blob_record.TotalLength + 8 + 4].decode('utf-8'):
+        if SECURE_STORAGE_GROUP != record[key_blob_record.TotalLength
+                                          + 8:key_blob_record.TotalLength
+                                          + 8
+                                          + 4].decode('utf-8'):
             return '', '', '', 1
 
         cipher_len = key_blob_record.TotalLength - key_blob_record.StartCryptoBlob
@@ -301,8 +320,10 @@ class Chainbreaker(object):
         cipher_text = record[key_blob_record.StartCryptoBlob:key_blob_record.TotalLength]
 
         # match data, keyblob_ciphertext, Initial Vector, success
-        return record[
-               key_blob_record.TotalLength + 8:key_blob_record.TotalLength + 8 + 20], cipher_text, key_blob_record.IV, 0
+        return record[key_blob_record.TotalLength
+                      + 8:key_blob_record.TotalLength
+                      + 8
+                      + 20], cipher_text, key_blob_record.IV, 0
 
     # Get a timestamp from the keychain buffer
     def _get_keychain_time(self, base_addr, pcol):
@@ -371,8 +392,9 @@ class Chainbreaker(object):
     # ## find DBBlob and extract Wrapping key
     def _find_wrapping_key(self, master):
         # get cipher text area
-        ciphertext = self.kc_buffer[
-                     self.base_addr + self.dbblob.StartCryptoBlob:self.base_addr + self.dbblob.TotalLength]
+        ciphertext = self.kc_buffer[self.base_addr
+                                    + self.dbblob.StartCryptoBlob:self.base_addr
+                                    + self.dbblob.TotalLength]
 
         # decrypt the key
         plain = Chainbreaker._kcdecrypt(master, self.dbblob.IV, ciphertext)
@@ -388,8 +410,9 @@ class Chainbreaker(object):
     # Extract the Cyphertext, IV, and Salt for the keychain file, for use with offline cracking (e.g. Hashcat)
     # Returns a KeychainPasswordHash object
     def dump_keychain_password_hash(self):
-        cyphertext = hexlify(
-            self.kc_buffer[self.base_addr + self.dbblob.StartCryptoBlob:self.base_addr + self.dbblob.TotalLength])
+        cyphertext = hexlify(self.kc_buffer[self.base_addr
+                                            + self.dbblob.StartCryptoBlob:self.base_addr
+                                            + self.dbblob.TotalLength])
 
         iv = hexlify(self.dbblob.IV)
         salt = hexlify(self.dbblob.Salt)
@@ -423,7 +446,7 @@ class Chainbreaker(object):
             address=self._get_lv(base_addr, record_meta.Address & 0xFFFFFFFE),
             signature=self._get_lv(base_addr, record_meta.Signature & 0xFFFFFFFE),
             ssgp=ssgp,
-            dbkey=dbkey
+            dbkey=dbkey,
         )
 
     def _get_private_key_record(self, record_offset):
@@ -465,13 +488,17 @@ class Chainbreaker(object):
             public_key=record[10],
         )
 
-    def _get_key_record(self, table_name, record_offset):  ## PUBLIC and PRIVATE KEY
+    def _get_key_record(self, table_name, record_offset):
+        """PUBLIC and PRIVATE KEY """
         base_addr = self._get_base_address(table_name, record_offset)
 
-        record_meta = _SECKEY_HEADER(self.kc_buffer[base_addr:base_addr + _SECKEY_HEADER.STRUCT.size])
+        record_meta = _SECKEY_HEADER(self.kc_buffer[base_addr:base_addr
+                                                    + _SECKEY_HEADER.STRUCT.size])
 
-        key_blob = self.kc_buffer[
-                   base_addr + _SECKEY_HEADER.STRUCT.size:base_addr + _SECKEY_HEADER.STRUCT.size + record_meta.BlobSize]
+        key_blob = self.kc_buffer[base_addr
+                                  + _SECKEY_HEADER.STRUCT.size:base_addr
+                                  + _SECKEY_HEADER.STRUCT.size
+                                  + record_meta.BlobSize]
 
         iv, key = Chainbreaker._get_encrypted_data_in_blob(key_blob)
 
@@ -503,8 +530,10 @@ class Chainbreaker(object):
             serial_number=self._get_lv(base_addr, record_meta.SerialNumber & 0xFFFFFFFE),
             subject_key_identifier=self._get_lv(base_addr, record_meta.SubjectKeyIdentifier & 0xFFFFFFFE),
             public_key_hash=self._get_lv(base_addr, record_meta.PublicKeyHash & 0xFFFFFFFE),
-            certificate=self.kc_buffer[
-                        base_addr + _X509_CERT_HEADER.STRUCT.size:base_addr + _X509_CERT_HEADER.STRUCT.size + record_meta.CertSize]
+            certificate=self.kc_buffer[base_addr
+                                       + _X509_CERT_HEADER.STRUCT.size:base_addr
+                                       + _X509_CERT_HEADER.STRUCT.size
+                                       + record_meta.CertSize],
         )
 
     def _extract_ssgp_and_dbkey(self, record_meta, buffer):
@@ -546,16 +575,18 @@ class Chainbreaker(object):
             port=self._get_int(base_addr, record_meta.Port & 0xFFFFFFFE),
             path=self._get_lv(base_addr, record_meta.Path & 0xFFFFFFFE),
             ssgp=ssgp,
-            dbkey=dbkey
+            dbkey=dbkey,
         )
 
     def _get_generic_password_record(self, record_offset):
         base_addr = self._get_base_address(CSSM_DL_DB_RECORD_GENERIC_PASSWORD, record_offset)
 
-        record_meta = _GENERIC_PW_HEADER(self.kc_buffer[base_addr:base_addr + _GENERIC_PW_HEADER.STRUCT.size])
+        record_meta = _GENERIC_PW_HEADER(self.kc_buffer[base_addr:base_addr
+                                                        + _GENERIC_PW_HEADER.STRUCT.size])
 
-        buffer = self.kc_buffer[
-                 base_addr + _GENERIC_PW_HEADER.STRUCT.size:base_addr + record_meta.RecordSize]
+        buffer = self.kc_buffer[base_addr
+                                + _GENERIC_PW_HEADER.STRUCT.size:base_addr
+                                + record_meta.RecordSize]
 
         ssgp, dbkey = self._extract_ssgp_and_dbkey(record_meta, buffer)
 
@@ -685,14 +716,19 @@ class Chainbreaker(object):
         return key_blob.IV, key_data  # IV, Encrypted Data
 
     # ## decrypted dbblob area
-    # ## Documents : http://www.opensource.apple.com/source/securityd/securityd-55137.1/doc/BLOBFORMAT
-    # ## http://www.opensource.apple.com/source/libsecurity_keychain/libsecurity_keychain-36620/lib/StorageManager.cpp
+    # ## Documents: http://www.opensource.apple.com/source/
+    # ##                securityd/securityd-55137.1/doc/BLOBFORMAT
+    # ##            http://www.opensource.apple.com/source/
+    # ##                libsecurity_keychain/libsecurity_keychain-36620/lib/StorageManager.cpp
     # def _ssgp_decryption(self, ssgp, dbkey):
     #     return Chainbreaker._kcdecrypt(dbkey, _SSGP(ssgp).IV, ssgp[_SSGP.STRUCT.size:])
 
-    # Documents : http://www.opensource.apple.com/source/securityd/securityd-55137.1/doc/BLOBFORMAT
-    # source : http://www.opensource.apple.com/source/libsecurity_cdsa_client/libsecurity_cdsa_client-36213/lib/securestorage.cpp
-    # magicCmsIV : http://www.opensource.apple.com/source/Security/Security-28/AppleCSP/AppleCSP/wrapKeyCms.cpp
+    # Documents:    http://www.opensource.apple.com/source/
+    #                   securityd/securityd-55137.1/doc/BLOBFORMAT
+    # source:       http://www.opensource.apple.com/source/
+    #                   libsecurity_cdsa_client/libsecurity_cdsa_client-36213/lib/securestorage.cpp
+    # magicCmsIV:   http://www.opensource.apple.com/source/
+    #                   Security/Security-28/AppleCSP/AppleCSP/wrapKeyCms.cpp
     @staticmethod
     def keyblob_decryption(encryptedblob, iv, dbkey):
 
@@ -738,10 +774,10 @@ class Chainbreaker(object):
 
             # Generate our filepath, making sure the file doesn't already exist. If it does,
             # add a number, e.g. PrivateKey.1.key
-            file_name = self.FileName + self.FileExt
+            file_name = self.file_name + self.file_ext
             iteration = 1
             while os.path.exists(os.path.join(output_directory, file_name)):
-                file_name = "%s.%s%s" % (self.FileName, iteration, self.FileExt)
+                file_name = "%s.%s%s" % (self.file_name, iteration, self.file_ext)
                 iteration += 1
 
             file_path = os.path.join(output_directory, file_name)
@@ -756,11 +792,11 @@ class Chainbreaker(object):
                 self.logger.critical('Exception while attempting to export %s: %s' % (file_path, e))
 
         @property
-        def FileName(self):
+        def file_name(self):
             return str(uuid.uuid4())
 
         @property
-        def FileExt(self):
+        def file_ext(self):
             return '.txt'
 
     class KeychainPasswordHash(KeychainRecord):
@@ -782,7 +818,7 @@ class Chainbreaker(object):
             return self.__str__()
 
         @property
-        def FileName(self):
+        def file_name(self):
             return "keychain_password_hash"
 
     class PublicKeyRecord(KeychainRecord):
@@ -822,11 +858,11 @@ class Chainbreaker(object):
             return self.PublicKey
 
         @property
-        def FileName(self):
+        def file_name(self):
             return "".join(x for x in self.PrintName if x.isalnum())
 
         @property
-        def FileExt(self):
+        def file_ext(self):
             return '.pub'
 
     class PrivateKeyRecord(KeychainRecord):
@@ -875,11 +911,11 @@ class Chainbreaker(object):
             return self.PrivateKey
 
         @property
-        def FileName(self):
+        def file_name(self):
             return "".join(x for x in self.PrintName if x.isalnum())
 
         @property
-        def FileExt(self):
+        def file_ext(self):
             return '.key'
 
     class X509CertificateRecord(KeychainRecord):
@@ -917,11 +953,11 @@ class Chainbreaker(object):
             return self.Certificate
 
         @property
-        def FileName(self):
+        def file_name(self):
             return "".join(x for x in self.PrintName if x.isalnum())
 
         @property
-        def FileExt(self):
+        def file_ext(self):
             return '.crt'
 
     class SSGBEncryptedRecord(KeychainRecord):
@@ -949,14 +985,14 @@ class Chainbreaker(object):
             return self._password
 
         def get_password_output_str(self):
-            password = self.Password
+            password = self.password
             if self.password_b64_encoded:
                 return ' [-] Base64 Encoded Password: {}\n'.format(password)
             else:
                 return ' [-] Password: {}\n'.format(password)
 
         @property
-        def Password(self):
+        def password(self):
             if not self._password:
                 self.decrypt_password()
                 if self.locked:
@@ -969,11 +1005,11 @@ class Chainbreaker(object):
             return self.__str__()
 
         @property
-        def FileName(self):
+        def file_name(self):
             return "".join(x for x in self.PrintName if x.isalnum())
 
         @property
-        def FileExt(self):
+        def file_ext(self):
             return '.txt'
 
     class GenericPasswordRecord(SSGBEncryptedRecord):
