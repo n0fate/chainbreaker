@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 def summary(args, keychain_md5, keychain_sha256):
     # Collect summary of information
     summary_output = [
-        "Python3 Compatible version! \n Forked from https://github.com/n0fate/chainbreaker , "
-        "thanks to https://github.com/gaddie-3/chainbreaker \n",
+        "Credits: Forked from https://github.com/n0fate/chainbreaker",
+        "Credits: Thanks to https://github.com/gaddie-3/chainbreaker",
         "Runtime Command: %s" % ' '.join(sys.argv),
         "Keychain: %s" % args.keychain,
         "Keychain MD5: %s" % keychain_md5,
