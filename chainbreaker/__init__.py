@@ -66,6 +66,8 @@ from chainbreaker.schema import (_APPL_DB_HEADER,
                                  STD_APPLE_ADDIN_MODULE,
                                  )
 
+__version__ = '3.0.0'
+
 logger = logging.getLogger(__name__)
 
 
