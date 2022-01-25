@@ -1,9 +1,9 @@
-from logging_config import LOGGER as logger
-
 import argparse
-import os
-import logging
 import getpass
+import logging
+import os
+
+logger = logging.getLogger(__name__)
 
 def setup_argsparse():
     arguments = argparse.ArgumentParser(description='Dump items stored in an OSX Keychain')

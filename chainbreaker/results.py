@@ -1,8 +1,9 @@
-from logging_config import LOGGER as logger
 import datetime
-import sys
+import logging
 import os
+import sys
 
+logger = logging.getLogger(__name__)
 
 def summary(args, keychain_md5, keychain_sha256):
     # Collect summary of information
