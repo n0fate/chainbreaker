@@ -1,6 +1,13 @@
 import codecs
+from distutils.util import convert_path
 
 from setuptools import find_packages, setup
+
+main_ns = {}
+ver_path = convert_path('chainbreaker/__init__.py')
+with open(ver_path) as ver_file:
+    exec(ver_file.read(), main_ns)
+
 
 dependencies = [
     'argparse',
@@ -9,7 +16,7 @@ dependencies = [
 
 setup(
     name='chainbreaker',
-    version='3.0.0',
+    version=main_ns['__version__'],
     author='n0fate',
     author_email=codecs.encode('80008322+TvatreTrarfgr@hfref.abercyl.tvguho.pbz', 'rot-13'),
     license='GPL-2.0',
