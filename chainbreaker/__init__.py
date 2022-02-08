@@ -66,7 +66,7 @@ from chainbreaker.schema import (_APPL_DB_HEADER,
                                  STD_APPLE_ADDIN_MODULE,
                                  )
 
-__version__ = '3.0.0'
+__version__ = '3.0.1'
 
 logger = logging.getLogger(__name__)
 
@@ -683,10 +683,10 @@ class Chainbreaker(object):
     def _kcdecrypt(key, iv, data):
         if len(data) == 0:
             logger.debug("Encrypted data is 0.")
-            return ''
+            return b''
 
         if len(data) % Chainbreaker.BLOCKSIZE != 0:
-            return ''
+            return b''
 
         cipher = DES3.new(key, DES3.MODE_CBC, iv=bytearray(iv))
 
@@ -696,12 +696,12 @@ class Chainbreaker(object):
         pad = plain[-1]
         if pad > 8:
             logger.debug("Bad padding byte. Keychain password might be incorrect.")
-            return ''
+            return b''
 
         for z in plain[-pad:]:
             if z != pad:
                 logger.debug("Bad padding byte. Keychain password might be incorrect.")
-                return ''
+                return b''
 
         plain = plain[:-pad]
 
