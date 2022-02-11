@@ -4,7 +4,7 @@ from distutils.util import convert_path
 from setuptools import find_packages, setup
 
 main_ns = {}
-ver_path = convert_path('chainbreaker/__init__.py')
+ver_path = convert_path('chainbreaker/version.py')
 with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
 
