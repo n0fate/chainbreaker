@@ -65,6 +65,7 @@ from chainbreaker.schema import (_APPL_DB_HEADER,
                                  SECURE_STORAGE_GROUP,
                                  STD_APPLE_ADDIN_MODULE,
                                  )
+from chainbreaker.version import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -1174,6 +1175,7 @@ def main():
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                         level=args.loglevel,
                         stream=sys.stdout)
+    logging.info(f'Version - {__version__}')
 
     # Calculate the MD5 and SHA256 of the input keychain file.
     keychain_md5 = md5(args.keychain.encode('utf-8')).hexdigest()
