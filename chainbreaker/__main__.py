@@ -1,0 +1,3 @@
+import chainbreaker
+
+chainbreaker.main()
