@@ -558,6 +558,8 @@ class Chainbreaker(object):
             table_name = 16
         if table_name == 30912:
             table_name = 16
+        if table_name == 23596:
+            table_name = 16
         base_address = _APPL_DB_HEADER.STRUCT.size + self._get_table_offset(table_name)
         if offset:
             base_address += offset
