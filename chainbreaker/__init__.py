@@ -787,7 +787,10 @@ class Chainbreaker(object):
             try:
                 with open(file_path, 'wb') as fp:
                     self.logger.info('\t [-] Exported: %s' % file_path)
-                    fp.write(export_content.encode('utf-8'))
+                    if type(export_content) is bytes:
+                        fp.write(export_content)
+                    else:
+                        fp.write(export_content.encode('utf-8'))
                     return True
             except OSError as e:
                 self.logger.critical('Exception while attempting to export %s: %s' % (file_path, e))
@@ -955,7 +958,7 @@ class Chainbreaker(object):
 
         @property
         def file_name(self):
-            return "".join(x for x in self.PrintName if x.isalnum())
+            return "".join(str(x) for x in self.PrintName if type(x) is int)
 
         @property
         def file_ext(self):
@@ -1007,7 +1010,7 @@ class Chainbreaker(object):
 
         @property
         def file_name(self):
-            return "".join(x for x in self.PrintName if x.isalnum())
+            return "".join(str(x) for x in self.PrintName if type(x) is int)
 
         @property
         def file_ext(self):
