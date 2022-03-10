@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # Author : n0fate
 # E-Mail rapfer@gmail.com, n0fate@n0fate.com
@@ -150,7 +150,7 @@ class Chainbreaker(object):
             table_meta, private_key_list = self._get_table_from_type(CSSM_DL_DB_RECORD_PRIVATE_KEY)
             for i, private_key_offset in enumerate(private_key_list, 1):
               try:
-                print "private_key_offset", self._get_private_key_record(private_key_offset)
+                print("private_key_offset", self._get_private_key_record(private_key_offset))
                 entries.append(
                     self._get_private_key_record(private_key_offset))
 
@@ -207,7 +207,7 @@ class Chainbreaker(object):
         table_list = []
         schema_info = _APPL_DB_SCHEMA(self.kc_buffer[offset:offset + _APPL_DB_SCHEMA.STRUCT.size])
 
-        for i in xrange(schema_info.TableCount):
+        for i in range(schema_info.TableCount):
             base_addr = _APPL_DB_HEADER.STRUCT.size + _APPL_DB_SCHEMA.STRUCT.size
             table_list.append(_TABLE_ID(self.kc_buffer[base_addr + (Chainbreaker.ATOM_SIZE * i):base_addr + (
                     Chainbreaker.ATOM_SIZE * i) + Chainbreaker.ATOM_SIZE]).Value)
@@ -248,7 +248,7 @@ class Chainbreaker(object):
     # Returns a dict of table indexes keyed off of the TableId
     def _get_table_name_to_list(self, record_list, table_list):
         table_dict = {}
-        for count in xrange(len(record_list)):
+        for count in range(len(record_list)):
             table_metadata, generic_list = self._get_table(table_list[count])
             table_dict[table_metadata.TableId] = count  # extract valid table list
 
@@ -742,7 +742,7 @@ class Chainbreaker(object):
                     self.logger.info('\t [-] Exported: %s' % file_path)
                     fp.write(export_content)
                     return True
-            except OSError, e:
+            except OSError as e:
                 self.logger.critical('Exception while attempting to export %s: %s' % (file_path, e))
 
         @property
