@@ -1261,8 +1261,8 @@ if __name__ == "__main__":
         exit(1)
 
     # Calculate the MD5 and SHA256 of the input keychain file.
-    keychain_md5 = hashlib.md5(args.keychain).hexdigest()
-    keychain_sha256 = hashlib.sha256(args.keychain).hexdigest()
+    keychain_md5 = hashlib.md5(args.keychain.encode('utf-8')).hexdigest()
+    keychain_sha256 = hashlib.sha256(args.keychain.encode('utf-8')).hexdigest()
 
     # Print out some summary info before we actually start doing any work.
     summary_output = [
