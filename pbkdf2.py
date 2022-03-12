@@ -34,7 +34,7 @@ class PBKDF2(object):
 
         h = hmac.new(self.password, None, self.hashfn)
 
-        T = ""
+        T = b""
         for i in range(1, l + 1):
             T += PBKDF2._pbkdf2_f(h, self.salt, self.itercount, i)
 
@@ -45,10 +45,7 @@ class PBKDF2(object):
         if len(a) != len(b):
             raise Exception("xorstr(): lengths differ")
 
-        ret = ''
-        for i in range(len(a)):
-            ret += chr(ord(a[i]) ^ ord(b[i]))
-
+        ret = bytes(i^j for i,j in zip(a, b))
         return ret
 
     @staticmethod
