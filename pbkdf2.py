@@ -28,7 +28,7 @@ class PBKDF2(object):
         self.hashfn = hashfn
 
         # l - number of output blocks to produce
-        l = self.keylen / PBKDF2.BLOCKLEN
+        l = self.keylen // PBKDF2.BLOCKLEN
         if self.keylen % PBKDF2.BLOCKLEN != 0:
             l += 1
 
