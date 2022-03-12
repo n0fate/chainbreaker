@@ -81,8 +81,8 @@ def test():
     password = 'All n-entities must communicate with other n-entities via n-1 entiteeheehees'
     itercount = 500
     keylen = 16
-    ret = PBKDF2(password, salt, itercount, keylen)
-    print("key:      %s" % hexlify(str(ret)))
+    ret = PBKDF2(password.encode(), salt, itercount, keylen)
+    print("key: ", " ".join(["{:02X}".format(x) for x in ret.key]))
     print("expected: 6A 89 70 BF 68 C9 2C AE A8 4A 8D F2 85 10 85 86")
 
 

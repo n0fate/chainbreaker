@@ -208,11 +208,13 @@ class DES(object):
         self.setKey(key)
 
     def getKey(self):
-        """getKey() -> string"""
+        """getKey() -> bytes"""
         return self.__key
 
     def setKey(self, key):
         """Will set the crypting key for this object. Must be 8 bytes."""
+        if isinstance(key, str):
+            key = key.encode("ascii")
         self.__key = key
         self.__create_sub_keys()
 
@@ -225,13 +227,15 @@ class DES(object):
         self.__mode = mode
 
     def getIV(self):
-        """getIV() -> string"""
+        """getIV() -> bytes"""
         return self.__iv
 
     def setIV(self, IV):
         """Will set the Initial Value, used in conjunction with CBC mode"""
         if not IV or len(IV) != self.block_size:
             raise ValueError("Invalid Initial Value (IV), must be a multiple of " + str(self.block_size) + " bytes")
+        if isinstance(IV, str):
+            IV = IV.encode('ascii')
         self.__iv = IV
 
     def getPadding(self):
@@ -243,9 +247,8 @@ class DES(object):
         l = len(data) * 8
         result = [0] * l
         pos = 0
-        for c in data:
+        for ch in data:
             i = 7
-            ch = c
             while i >= 0:
                 if ch & (1 << i) != 0:
                     result[pos] = 1
@@ -258,17 +261,17 @@ class DES(object):
 
     def __BitList_to_String(self, data):
         """Turn the list of bits -> data, into a string"""
-        result = ''
+        result = []
         pos = 0
         c = 0
         while pos < len(data):
             c += data[pos] << (7 - (pos % 8))
             if (pos % 8) == 7:
-                result += chr(c)
+                result.append(c)
                 c = 0
             pos += 1
 
-        return result
+        return bytes(result)
 
     def __permutate(self, table, block):
         """Permutate this block with the specified table"""
@@ -462,7 +465,7 @@ class DES(object):
             result[-1] = s
 
         # Return the full crypted string
-        return ''.join(result)
+        return bytes.fromhex('').join(result)
 
     def encrypt(self, data, pad=''):
         """
@@ -477,6 +480,10 @@ class DES(object):
         data will then be padded to a multiple of 8 bytes with this
         pad character.
         """
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+        if isinstance(pad, str):
+            pad = pad.encode('utf-8')
         self.__padding = pad
         return self.crypt(data, DES.ENCRYPT)
 
@@ -493,6 +500,10 @@ class DES(object):
         removed from the end of the string. This pad removal only occurs on the
         last 8 bytes of the data (last data block).
         """
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+        if isinstance(pad, str):
+            pad = pad.encode('utf-8')
         self.__padding = pad
         return self.crypt(data, DES.DECRYPT)
 
@@ -714,8 +725,6 @@ def example_des():
     # print("Data     : " + data)
 
     d = k.encrypt(data)
-    # print("Encrypted: " + d)
-
     d = k.decrypt(d)
     # print("Decrypted: " + d)
     # print("DES time taken: %f (6 crypt operations)" % (time() - t))
