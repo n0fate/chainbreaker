@@ -272,7 +272,7 @@ class DES(object):
 
     def __permutate(self, table, block):
         """Permutate this block with the specified table"""
-        return map(lambda x: block[x], table)
+        return list(map(lambda x: block[x], table))
 
     # Transform the secret key, so that it is ready for data processing
     # Create the 16 subkeys, K[1] - K[16]
@@ -325,7 +325,7 @@ class DES(object):
             self.R = self.__permutate(DES.__expansion_table, self.R)
 
             # Exclusive or R[i - 1] with K[i], create B[1] to B[8] whilst here
-            self.R = map(lambda x, y: x ^ y, self.R, self.Kn[iteration])
+            self.R = list(map(lambda x, y: x ^ y, self.R, self.Kn[iteration]))
             B = [self.R[:6], self.R[6:12], self.R[12:18], self.R[18:24], self.R[24:30], self.R[30:36], self.R[36:42],
                  self.R[42:]]
             # Optimization: Replaced below commented code with above
@@ -362,7 +362,7 @@ class DES(object):
             self.R = self.__permutate(DES.__p, Bn)
 
             # Xor with L[i - 1]
-            self.R = map(lambda x, y: x ^ y, self.R, self.L)
+            self.R = list(map(lambda x, y: x ^ y, self.R, self.L))
             # Optimization: This now replaces the below commented code
             # j = 0
             # while j < len(self.R):
@@ -424,7 +424,7 @@ class DES(object):
             # Xor with IV if using CBC mode
             if self.getMode() == CBC:
                 if crypt_type == DES.ENCRYPT:
-                    block = map(lambda x, y: x ^ y, block, iv)
+                    block = list(map(lambda x, y: x ^ y, block, iv))
                 # j = 0
                 # while j < len(block):
                 #	block[j] = block[j] ^ iv[j]
@@ -433,7 +433,7 @@ class DES(object):
                 processed_block = self.__des_crypt(block, crypt_type)
 
                 if crypt_type == DES.DECRYPT:
-                    processed_block = map(lambda x, y: x ^ y, processed_block, iv)
+                    processed_block = list(map(lambda x, y: x ^ y, processed_block, iv))
                     # j = 0
                     # while j < len(processed_block):
                     #	processed_block[j] = processed_block[j] ^ iv[j]
