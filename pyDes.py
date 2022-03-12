@@ -2,7 +2,7 @@
 # Documentation				    #
 #############################################################################
 
-# Author:   Todd Whiteman
+# Author:   Todd Whiteman 
 # Date:     7th May, 2003
 # Verion:   1.1
 # Homepage: http://home.pacific.net.au/~twhitema/des.html

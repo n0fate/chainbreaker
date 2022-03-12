@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3 
 
 # A simple implementation of pbkdf2 using stock python modules. See RFC2898
 # for details. Basically, it derives a key from a password and salt.
