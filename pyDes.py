@@ -245,7 +245,7 @@ class DES(object):
         pos = 0
         for c in data:
             i = 7
-            ch = ord(c)
+            ch = c
             while i >= 0:
                 if ch & (1 << i) != 0:
                     result[pos] = 1

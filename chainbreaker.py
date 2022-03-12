@@ -73,9 +73,9 @@ class Chainbreaker(object):
         if not self._is_valid_keychain():
             self.logger.warning('Keychain signature does not match. are you sure this is a valid keychain file?')
 
-        self.unlock_password = unlock_password
+        self._unlock_password = unlock_password
         if unlock_password is not None:
-            self.unlock_password = unlock_password.encode()
+            self._unlock_password = unlock_password.encode()
         self.unlock_key = unlock_key
         self.unlock_file = unlock_file
 
@@ -347,7 +347,7 @@ class Chainbreaker(object):
 
     # ## Documents : http://www.opensource.apple.com/source/securityd/securityd-55137.1/doc/BLOBFORMAT
     def _generate_master_key(self, pw):
-        return PBKDF2(pw, str(bytearray(self.dbblob.Salt)), 1000, Chainbreaker.KEYLEN).key
+        return PBKDF2(pw, bytearray(self.dbblob.Salt), 1000, Chainbreaker.KEYLEN).key
 
     # ## find DBBlob and extract Wrapping key
     def _find_wrapping_key(self, master):
