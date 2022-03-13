@@ -186,7 +186,7 @@ class Chainbreaker(object):
     # Simple check to make sure the keychain we're looking at is valid.
     # A valid keychain begins with "kych"
     def _is_valid_keychain(self):
-        if self.kc_buffer[0:4] != Chainbreaker.KEYCHAIN_SIGNATURE:
+        if self.kc_buffer[0:4].decode() != Chainbreaker.KEYCHAIN_SIGNATURE:
             return False
         return True
 
@@ -767,7 +767,7 @@ class Chainbreaker(object):
 
         def __str__(self):
             return Chainbreaker.KeychainPasswordHash.KEYCHAIN_PASSWORD_HASH_FORMAT % (
-                self.salt, self.iv, self.cypher_text)
+                self.salt.decode('utf-8'), self.iv.decode('utf-8'), self.cypher_text.decode('utf-8'))
 
         @property
         def exportable(self):
