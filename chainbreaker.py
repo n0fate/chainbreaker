@@ -299,14 +299,14 @@ class Chainbreaker(object):
     # Get 4 character code from the keychain buffer
     def _get_four_char_code(self, base_addr, pcol):
         if pcol <= 0:
-            return ''
+            return b''
         else:
             return _FOUR_CHAR_CODE(self.kc_buffer[base_addr + pcol:base_addr + pcol + 4]).Value
 
     # Get an lv from the keychain buffer
     def _get_lv(self, base_addr, pcol):
         if pcol <= 0:
-            return ''
+            return b''
 
         str_length = _INT(self.kc_buffer[base_addr + pcol:base_addr + pcol + 4]).Value
         # 4byte arrangement
@@ -319,7 +319,7 @@ class Chainbreaker(object):
             data = _LV(self.kc_buffer[base_addr + pcol + 4:base_addr + pcol + 4 + real_str_len], real_str_len).Value
         except struct.error:
             self.logger.debug('LV string length is too long.')
-            return ''
+            return b''
 
         return data
 
@@ -415,8 +415,8 @@ class Chainbreaker(object):
         else:
             keyname, privatekey = self._private_key_decryption(record[10], record[9])
         return self.PrivateKeyRecord(
-            print_name=record[0],
-            label=record[1],
+            print_name=record[0].decode(),
+            label=record[1].decode(),
             key_class=KEY_TYPE[record[2]],
             private=record[3],
             key_type=record[4],
@@ -433,8 +433,8 @@ class Chainbreaker(object):
     def _get_public_key_record(self, record_offset):
         record = self._get_key_record(self._get_table_offset(CSSM_DL_DB_RECORD_PUBLIC_KEY), record_offset)
         return self.PublicKeyRecord(
-            print_name=record[0],
-            label=record[1],
+            print_name=record[0].decode(),
+            label=record[1].decode(),
             key_class=KEY_TYPE[record[2]],
             private=record[3],
             key_type=record[4],
@@ -894,14 +894,14 @@ class Chainbreaker(object):
             output = '[+] X509 Certificate\n'
             # output += " [-] Type: %s\n" % self.Type
             # output += " [-] Encoding: %s\n" % self.Encoding
-            output += " [-] Print Name: %s\n" % self.PrintName
+            output += " [-] Print Name: %s\n" % self.PrintName.decode()
             # output += " [-] Alias: %s\n" % self.Alias
             # output += " [-] Subject: %s\n" % self.Subject
             # output += " [-] Issuer: %s\n" % self.Issuer
             # output += " [-] Serial Number: %s\n" % self.Serial_Number
             # output += " [-] Subject Key Identifier: %s\n" % self.Subject_Key_Identifier
             # output += " [-] Public Key Hash: %s\n" % self.Public_Key_Hash
-            output += " [-] Certificate: %s\n" % base64.b64encode(self.Certificate)
+            output += " [-] Certificate: %s\n" % base64.b64encode(self.Certificate).decode()
             return output
 
         @property
@@ -988,13 +988,13 @@ class Chainbreaker(object):
             output = '[+] Generic Password Record\n'
             output += ' [-] Create DateTime: %s\n' % self.Created  # 16byte string
             output += ' [-] Last Modified DateTime: %s\n' % self.LastModified  # 16byte string
-            output += ' [-] Description: %s\n' % self.Description
-            output += ' [-] Creator: %s\n' % self.Creator
-            output += ' [-] Type: %s\n' % self.Type
-            output += ' [-] Print Name: %s\n' % self.PrintName
-            output += ' [-] Alias: %s\n' % self.Alias
-            output += ' [-] Account: %s\n' % self.Account
-            output += ' [-] Service: %s\n' % self.Service
+            output += ' [-] Description: %s\n' % self.Description.decode()
+            output += ' [-] Creator: %s\n' % self.Creator.decode()
+            output += ' [-] Type: %s\n' % self.Type.decode()
+            output += ' [-] Print Name: %s\n' % self.PrintName.decode()
+            output += ' [-] Alias: %s\n' % self.Alias.decode()
+            output += ' [-] Account: %s\n' % self.Account.decode()
+            output += ' [-] Service: %s\n' % self.Service.decode()
             output += self.get_password_output_str()
 
             return output
@@ -1029,16 +1029,16 @@ class Chainbreaker(object):
             output = '[+] Internet Record\n'
             output += ' [-] Create DateTime: %s\n' % self.Created
             output += ' [-] Last Modified DateTime: %s\n' % self.LastModified
-            output += ' [-] Description: %s\n' % self.Description
-            output += ' [-] Comment: %s\n' % self.Comment
-            output += ' [-] Creator: %s\n' % self.Creator
-            output += ' [-] Type: %s\n' % self.Type
-            output += ' [-] PrintName: %s\n' % self.PrintName
-            output += ' [-] Alias: %s\n' % self.Alias
-            output += ' [-] Protected: %s\n' % self.Protected
-            output += ' [-] Account: %s\n' % self.Account
-            output += ' [-] SecurityDomain: %s\n' % self.SecurityDomain
-            output += ' [-] Server: %s\n' % self.Server
+            output += ' [-] Description: %s\n' % self.Description.decode()
+            output += ' [-] Comment: %s\n' % self.Comment.decode()
+            output += ' [-] Creator: %s\n' % self.Creator.decode()
+            output += ' [-] Type: %s\n' % self.Type.decode()
+            output += ' [-] PrintName: %s\n' % self.PrintName.decode()
+            output += ' [-] Alias: %s\n' % self.Alias.decode()
+            output += ' [-] Protected: %s\n' % self.Protected.decode()
+            output += ' [-] Account: %s\n' % self.Account.decode()
+            output += ' [-] SecurityDomain: %s\n' % self.SecurityDomain.decode()
+            output += ' [-] Server: %s\n' % self.Server.decode()
 
             try:
                 output += ' [-] Protocol Type: %s\n' % PROTOCOL_TYPE[self.ProtocolType]
@@ -1084,16 +1084,16 @@ class Chainbreaker(object):
             output = '[+] AppleShare Record (no longer used in OS X)\n'
             output += ' [-] Create DateTime: %s\n' % self.Created
             output += ' [-] Last Modified DateTime: %s\n' % self.LastModified
-            output += ' [-] Description: %s\n' % self.Description
-            output += ' [-] Comment: %s\n' % self.Comment
-            output += ' [-] Creator: %s\n' % self.Creator
-            output += ' [-] Type: %s\n' % self.Type
-            output += ' [-] PrintName: %s\n' % self.PrintName
-            output += ' [-] Alias: %s\n' % self.Alias
-            output += ' [-] Protected: %s\n' % self.Protected
-            output += ' [-] Account: %s\n' % self.Account
-            output += ' [-] Volume: %s\n' % self.Volume
-            output += ' [-] Server: %s\n' % self.Server
+            output += ' [-] Description: %s\n' % self.Description.decode()
+            output += ' [-] Comment: %s\n' % self.Comment.decode()
+            output += ' [-] Creator: %s\n' % self.Creator.decode()
+            output += ' [-] Type: %s\n' % self.Type.decode()
+            output += ' [-] PrintName: %s\n' % self.PrintName.decode()
+            output += ' [-] Alias: %s\n' % self.Alias.decode()
+            output += ' [-] Protected: %s\n' % self.Protected.decode()
+            output += ' [-] Account: %s\n' % self.Account.decode()
+            output += ' [-] Volume: %s\n' % self.Volume.decode()
+            output += ' [-] Server: %s\n' % self.Server.decode()
 
             try:
                 output += ' [-] Protocol Type: %s\n' % PROTOCOL_TYPE[self.Protocol_Type]
