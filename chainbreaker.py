@@ -742,6 +742,8 @@ class Chainbreaker(object):
             try:
                 with open(file_path, 'wb') as fp:
                     self.logger.info('\t [-] Exported: %s' % file_path)
+                    if isinstance(export_content, str):
+                        export_content = export_content.encode()
                     fp.write(export_content)
                     return True
             except OSError as e:
@@ -910,7 +912,7 @@ class Chainbreaker(object):
 
         @property
         def FileName(self):
-            return "".join(x for x in self.PrintName if x.isalnum())
+            return "".join(x for x in self.PrintName.decode() if x.isalnum())
 
         @property
         def FileExt(self):
@@ -960,7 +962,7 @@ class Chainbreaker(object):
 
         @property
         def FileName(self):
-            return "".join(x for x in self.PrintName if x.isalnum())
+            return "".join(x for x in self.PrintName.decode() if x.isalnum())
 
         @property
         def FileExt(self):
