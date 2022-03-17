@@ -13,10 +13,11 @@ from hashlib import sha1
 import hmac
 
 from binascii import hexlify, unhexlify
+import math
 from struct import pack
 
 
-class PBKDF2(object):
+class PBKDF2():
     BLOCKLEN = 20
 
     # this is what you want to call.
@@ -28,11 +29,9 @@ class PBKDF2(object):
         self.hashfn = hashfn
 
         # l - number of output blocks to produce
-        l = self.keylen / PBKDF2.BLOCKLEN
-        if self.keylen % PBKDF2.BLOCKLEN != 0:
-            l += 1
-
-        h = hmac.new(self.password, None, self.hashfn)
+        l = math.ceil(self.keylen / PBKDF2.BLOCKLEN)
+        key = bytes(self.password, 'UTF-8')
+        h = hmac.new(key, None, self.hashfn)
 
         T = ""
         for i in range(1, l + 1):
@@ -45,11 +44,7 @@ class PBKDF2(object):
         if len(a) != len(b):
             raise Exception("xorstr(): lengths differ")
 
-        ret = ''
-        for i in range(len(a)):
-            ret += chr(ord(a[i]) ^ ord(b[i]))
-
-        return ret
+        return ''.join([chr(ord(a[i]) ^ ord(b[i])) for i in a])
 
     @staticmethod
     def _prf(h, data):
@@ -64,7 +59,7 @@ class PBKDF2(object):
         U = PBKDF2._prf(h, salt + pack('>i', blocknum))
         T = U
 
-        for i in range(2, itercount + 1):
+        for _ in range(2, itercount + 1):
             U = PBKDF2._prf(h, U)
             T = PBKDF2._xorstr(T, U)
 
@@ -85,7 +80,7 @@ def test():
     itercount = 500
     keylen = 16
     ret = PBKDF2(password, salt, itercount, keylen)
-    print("key:      %s" % hexlify(str(ret)))
+    print(f"key:      {hexlify(str(ret))}")
     print("expected: 6A 89 70 BF 68 C9 2C AE A8 4A 8D F2 85 10 85 86")
 
 

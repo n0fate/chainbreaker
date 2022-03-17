@@ -464,7 +464,7 @@ class _KEYCHAIN_TIME(object):
         self.Time = datetime.strptime(self.Value, _KEYCHAIN_TIME.STRPTIME_FORMAT)
 
     def __repr__(self):
-        return
+        return ""
 
 
 class _INT(object):

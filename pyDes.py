@@ -405,7 +405,6 @@ class DES(object):
 
         # Split the data into blocks, crypting each one seperately
         i = 0
-        dict = {}
         result = []
         # cached = 0
         # lines = 0
@@ -520,7 +519,6 @@ class TripleDES(object):
     def __init__(self, key, mode=ECB, IV=None):
         self.block_size = 8
         self.setMode(mode)
-        self.__padding = ''
         self.__iv = IV
         self.setKey(key)
 
@@ -566,7 +564,7 @@ class TripleDES(object):
     def xorstr(self, x, y):
         """Returns the bitwise xor of the bytes in two strings"""
         if len(x) != len(y):
-            raise Exception("string lengths differ %d %d" % (len(x), len(y)))
+            raise Exception(f"string lengths differ {len(x)} {len(y)}")
 
         ret = ''
         for i in range(len(x)):
@@ -595,21 +593,21 @@ class TripleDES(object):
 
         if self.getMode() == CBC:
             raise Exception("This code hasn't been tested yet")
-            if len(data) % self.block_size != 0:
-                raise Exception("CBC mode needs datalen to be a multiple of blocksize (ignoring padding for now)")
+            # if len(data) % self.block_size != 0:
+            #     raise Exception("CBC mode needs datalen to be a multiple of blocksize (ignoring padding for now)")
 
-            # simple
-            lastblock = self.getIV()
-            retdata = ''
-            for i in range(0, len(data), self.block_size):
-                thisblock = data[i:i + self.block_size]
-                # the XOR for CBC
-                thisblock = self._xorstr(lastblock, thisblock)
-                thisblock = self.__key1.encrypt(thisblock)
-                thisblock = self.__key2.decrypt(thisblock)
-                lastblock = self.__key3.encrypt(thisblock)
-                retdata += lastblock
-            return retdata
+            # # simple
+            # lastblock = self.getIV()
+            # retdata = ''
+            # for i in range(0, len(data), self.block_size):
+            #     thisblock = data[i:i + self.block_size]
+            #     # the XOR for CBC
+            #     thisblock = self._xorstr(lastblock, thisblock)
+            #     thisblock = self.__key1.encrypt(thisblock)
+            #     thisblock = self.__key2.decrypt(thisblock)
+            #     lastblock = self.__key3.encrypt(thisblock)
+            #     retdata += lastblock
+            # return retdata
 
         raise Exception("Not reached")
 
@@ -664,7 +662,6 @@ def example_triple_des():
     # print("Example of triple DES encryption in default ECB mode (DES-EDE3)\n")
 
     # print("Triple des using the des class (3 times)")
-    t = time()
     k1 = DES(unhex("133457799BBCDFF1"))
     k2 = DES(unhex("1122334455667788"))
     k3 = DES(unhex("77661100DD223311"))
