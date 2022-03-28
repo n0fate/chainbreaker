@@ -1,9 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # Author : n0fate
 # E-Mail rapfer@gmail.com, n0fate@n0fate.com
 #
 # 10/7/2020 - Significant changes made by luke@socially-inept.net
+# 2022-03-28 - port to py3 by caryoscelus (@gmx.com)
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,6 +32,11 @@ import logging
 import base64
 import string
 import uuid
+
+def b2s(b):
+    if type(b) is bytes:
+        return b.decode('utf-8')
+    return b
 
 class Chainbreaker(object):
     ATOM_SIZE = 4
@@ -148,9 +154,9 @@ class Chainbreaker(object):
         entries = []
         try:
             table_meta, private_key_list = self._get_table_from_type(CSSM_DL_DB_RECORD_PRIVATE_KEY)
-            for i, private_key_offset in enumerate(private_key_list, 1):
+            for private_key_offset in private_key_list:
               try:
-                print "private_key_offset", self._get_private_key_record(private_key_offset)
+                print("private_key_offset", self._get_private_key_record(private_key_offset))
                 entries.append(
                     self._get_private_key_record(private_key_offset))
 
@@ -184,9 +190,7 @@ class Chainbreaker(object):
     # Simple check to make sure the keychain we're looking at is valid.
     # A valid keychain begins with "kych"
     def _is_valid_keychain(self):
-        if self.kc_buffer[0:4] != Chainbreaker.KEYCHAIN_SIGNATURE:
-            return False
-        return True
+        return b2s(self.kc_buffer[0:4]) == Chainbreaker.KEYCHAIN_SIGNATURE
 
     # When the keychain is successfully decrypted ("unlocked"), we can obtain a list of encryption keys
     # used to encrypt individual records, indexed off of the SSGB label.
@@ -207,7 +211,7 @@ class Chainbreaker(object):
         table_list = []
         schema_info = _APPL_DB_SCHEMA(self.kc_buffer[offset:offset + _APPL_DB_SCHEMA.STRUCT.size])
 
-        for i in xrange(schema_info.TableCount):
+        for i in range(schema_info.TableCount):
             base_addr = _APPL_DB_HEADER.STRUCT.size + _APPL_DB_SCHEMA.STRUCT.size
             table_list.append(_TABLE_ID(self.kc_buffer[base_addr + (Chainbreaker.ATOM_SIZE * i):base_addr + (
                     Chainbreaker.ATOM_SIZE * i) + Chainbreaker.ATOM_SIZE]).Value)
@@ -248,7 +252,7 @@ class Chainbreaker(object):
     # Returns a dict of table indexes keyed off of the TableId
     def _get_table_name_to_list(self, record_list, table_list):
         table_dict = {}
-        for count in xrange(len(record_list)):
+        for count in range(len(record_list)):
             table_metadata, generic_list = self._get_table(table_list[count])
             table_dict[table_metadata.TableId] = count  # extract valid table list
 
@@ -309,9 +313,9 @@ class Chainbreaker(object):
         str_length = _INT(self.kc_buffer[base_addr + pcol:base_addr + pcol + 4]).Value
         # 4byte arrangement
         if (str_length % 4) == 0:
-            real_str_len = (str_length / 4) * 4
+            real_str_len = (str_length // 4) * 4
         else:
-            real_str_len = ((str_length / 4) + 1) * 4
+            real_str_len = ((str_length // 4) + 1) * 4
 
         try:
             data = _LV(self.kc_buffer[base_addr + pcol + 4:base_addr + pcol + 4 + real_str_len], real_str_len).Value
@@ -326,7 +330,7 @@ class Chainbreaker(object):
     def _private_key_decryption(self, encryptedblob, iv):
         plain = Chainbreaker._kcdecrypt(self.db_key, Chainbreaker.MAGIC_CMS_IV, encryptedblob)
 
-        if plain.__len__() == 0:
+        if len(plain) == 0:
             return '', ''
 
         # now we handle the unwrapping. we need to take the first 32 bytes,
@@ -356,7 +360,7 @@ class Chainbreaker(object):
         # decrypt the key
         plain = Chainbreaker._kcdecrypt(master, self.dbblob.IV, ciphertext)
 
-        if plain.__len__() < Chainbreaker.KEYLEN:
+        if len(plain) < Chainbreaker.KEYLEN:
             return ''
 
         dbkey = plain[:Chainbreaker.KEYLEN]
@@ -742,7 +746,7 @@ class Chainbreaker(object):
                     self.logger.info('\t [-] Exported: %s' % file_path)
                     fp.write(export_content)
                     return True
-            except OSError, e:
+            except OSError as e:
                 self.logger.critical('Exception while attempting to export %s: %s' % (file_path, e))
 
         @property
@@ -765,7 +769,7 @@ class Chainbreaker(object):
 
         def __str__(self):
             return Chainbreaker.KeychainPasswordHash.KEYCHAIN_PASSWORD_HASH_FORMAT % (
-                self.salt, self.iv, self.cypher_text)
+                b2s(self.salt), b2s(self.iv), b2s(self.cypher_text))
 
         @property
         def exportable(self):
@@ -795,7 +799,7 @@ class Chainbreaker(object):
 
         def __str__(self):
             output = '[+] Public Key\n'
-            output += ' [-] Print Name: %s\n' % self.PrintName
+            output += ' [-] Print Name: %s\n' % b2s(self.PrintName)
             # output += ' [-] Label: %s\n' % self.Label
             output += ' [-] Key Class: %s\n' % self.KeyClass
             output += ' [-] Private: %s\n' % self.Private
@@ -841,7 +845,7 @@ class Chainbreaker(object):
 
         def __str__(self):
             output = '[+] Private Key\n'
-            output += ' [-] Print Name: %s\n' % self.PrintName
+            output += ' [-] Print Name: %s\n' % b2s(self.PrintName)
             # output += ' [-] Label: %s\n' % self.Label
             output += ' [-] Key Class: %s\n' % self.KeyClass
             # output += ' [-] Private: %s\n' % self.Private
@@ -892,14 +896,14 @@ class Chainbreaker(object):
             output = '[+] X509 Certificate\n'
             # output += " [-] Type: %s\n" % self.Type
             # output += " [-] Encoding: %s\n" % self.Encoding
-            output += " [-] Print Name: %s\n" % self.PrintName
+            output += " [-] Print Name: %s\n" % b2s(self.PrintName)
             # output += " [-] Alias: %s\n" % self.Alias
             # output += " [-] Subject: %s\n" % self.Subject
             # output += " [-] Issuer: %s\n" % self.Issuer
             # output += " [-] Serial Number: %s\n" % self.Serial_Number
             # output += " [-] Subject Key Identifier: %s\n" % self.Subject_Key_Identifier
             # output += " [-] Public Key Hash: %s\n" % self.Public_Key_Hash
-            output += " [-] Certificate: %s\n" % base64.b64encode(self.Certificate)
+            output += " [-] Certificate: %s\n" % base64.b64encode(self.Certificate).decode('utf-8')
             return output
 
         @property
@@ -986,13 +990,13 @@ class Chainbreaker(object):
             output = '[+] Generic Password Record\n'
             output += ' [-] Create DateTime: %s\n' % self.Created  # 16byte string
             output += ' [-] Last Modified DateTime: %s\n' % self.LastModified  # 16byte string
-            output += ' [-] Description: %s\n' % self.Description
-            output += ' [-] Creator: %s\n' % self.Creator
-            output += ' [-] Type: %s\n' % self.Type
-            output += ' [-] Print Name: %s\n' % self.PrintName
-            output += ' [-] Alias: %s\n' % self.Alias
-            output += ' [-] Account: %s\n' % self.Account
-            output += ' [-] Service: %s\n' % self.Service
+            output += ' [-] Description: %s\n' % b2s(self.Description)
+            output += ' [-] Creator: %s\n' % b2s(self.Creator)
+            output += ' [-] Type: %s\n' % b2s(self.Type)
+            output += ' [-] Print Name: %s\n' % b2s(self.PrintName)
+            output += ' [-] Alias: %s\n' % b2s(self.Alias)
+            output += ' [-] Account: %s\n' % b2s(self.Account)
+            output += ' [-] Service: %s\n' % b2s(self.Service)
             output += self.get_password_output_str()
 
             return output
@@ -1027,29 +1031,29 @@ class Chainbreaker(object):
             output = '[+] Internet Record\n'
             output += ' [-] Create DateTime: %s\n' % self.Created
             output += ' [-] Last Modified DateTime: %s\n' % self.LastModified
-            output += ' [-] Description: %s\n' % self.Description
+            output += ' [-] Description: %s\n' % b2s(self.Description)
             output += ' [-] Comment: %s\n' % self.Comment
             output += ' [-] Creator: %s\n' % self.Creator
-            output += ' [-] Type: %s\n' % self.Type
-            output += ' [-] PrintName: %s\n' % self.PrintName
+            output += ' [-] Type: %s\n' % b2s(self.Type)
+            output += ' [-] PrintName: %s\n' % b2s(self.PrintName)
             output += ' [-] Alias: %s\n' % self.Alias
             output += ' [-] Protected: %s\n' % self.Protected
-            output += ' [-] Account: %s\n' % self.Account
-            output += ' [-] SecurityDomain: %s\n' % self.SecurityDomain
-            output += ' [-] Server: %s\n' % self.Server
+            output += ' [-] Account: %s\n' % b2s(self.Account)
+            output += ' [-] SecurityDomain: %s\n' % b2s(self.SecurityDomain)
+            output += ' [-] Server: %s\n' % b2s(self.Server)
 
             try:
-                output += ' [-] Protocol Type: %s\n' % PROTOCOL_TYPE[self.ProtocolType]
+                output += ' [-] Protocol Type: %s\n' % PROTOCOL_TYPE[b2s(self.ProtocolType)]
             except KeyError:
-                output += ' [-] Protocol Type: %s\n' % self.ProtocolType
+                output += ' [-] Protocol Type: %s\n' % b2s(self.ProtocolType)
 
             try:
-                output += ' [-] Auth Type: %s\n' % AUTH_TYPE[self.AuthType]
+                output += ' [-] Auth Type: %s\n' % AUTH_TYPE[b2s(self.AuthType)]
             except KeyError:
-                output += ' [-] Auth Type: %s\n' % self.AuthType
+                output += ' [-] Auth Type: %s\n' % b2s(self.AuthType)
 
             output += ' [-] Port: %d\n' % self.Port
-            output += ' [-] Path: %s\n' % self.Path
+            output += ' [-] Path: %s\n' % b2s(self.Path)
             output += self.get_password_output_str()
 
             return output
@@ -1082,11 +1086,11 @@ class Chainbreaker(object):
             output = '[+] AppleShare Record (no longer used in OS X)\n'
             output += ' [-] Create DateTime: %s\n' % self.Created
             output += ' [-] Last Modified DateTime: %s\n' % self.LastModified
-            output += ' [-] Description: %s\n' % self.Description
+            output += ' [-] Description: %s\n' % b2s(self.Description)
             output += ' [-] Comment: %s\n' % self.Comment
-            output += ' [-] Creator: %s\n' % self.Creator
-            output += ' [-] Type: %s\n' % self.Type
-            output += ' [-] PrintName: %s\n' % self.PrintName
+            output += ' [-] Creator: %s\n' % b2s(self.Creator)
+            output += ' [-] Type: %s\n' % b2s(self.Type)
+            output += ' [-] PrintName: %s\n' % b2s(self.PrintName)
             output += ' [-] Alias: %s\n' % self.Alias
             output += ' [-] Protected: %s\n' % self.Protected
             output += ' [-] Account: %s\n' % self.Account
@@ -1261,8 +1265,8 @@ if __name__ == "__main__":
         exit(1)
 
     # Calculate the MD5 and SHA256 of the input keychain file.
-    keychain_md5 = hashlib.md5(args.keychain).hexdigest()
-    keychain_sha256 = hashlib.sha256(args.keychain).hexdigest()
+    keychain_md5 = hashlib.md5(args.keychain.encode('utf-8')).hexdigest()
+    keychain_sha256 = hashlib.sha256(args.keychain.encode('utf-8')).hexdigest()
 
     # Print out some summary info before we actually start doing any work.
     summary_output = [
