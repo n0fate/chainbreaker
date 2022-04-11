@@ -34,7 +34,7 @@ import string
 import uuid
 
 def b2s(b):
-    if type(b) is bytes:
+    if type(b) is not str:
         return b.decode('utf-8')
     return b
 
@@ -349,7 +349,7 @@ class Chainbreaker(object):
 
     # ## Documents : http://www.opensource.apple.com/source/securityd/securityd-55137.1/doc/BLOBFORMAT
     def _generate_master_key(self, pw):
-        return str(PBKDF2(pw, str(bytearray(self.dbblob.Salt)), 1000, Chainbreaker.KEYLEN))
+        return b2s(PBKDF2(pw, bytearray(self.dbblob.Salt), 1000, Chainbreaker.KEYLEN))
 
     # ## find DBBlob and extract Wrapping key
     def _find_wrapping_key(self, master):
@@ -645,7 +645,7 @@ class Chainbreaker(object):
         if len(data) % Chainbreaker.BLOCKSIZE != 0:
             return ''
 
-        cipher = TripleDES(key, CBC, str(bytearray(iv)))
+        cipher = TripleDES(key, CBC, b2s(bytearray(iv)))
 
         plain = cipher.decrypt(data)
 
