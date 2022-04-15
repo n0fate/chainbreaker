@@ -460,7 +460,7 @@ class DES(object):
         if crypt_type == DES.DECRYPT and self.getPadding():
             # print("Removing decrypt pad")
             s = result[-1]
-            while s[-1] == self.getPadding():
+            while s[-1] == ord(self.getPadding().decode()):
                 s = s[:-1]
             result[-1] = s
 
@@ -752,17 +752,17 @@ def __fulltest__():
 
     k = DES("\0\0\0\0\0\0\0\0", CBC, "\0\0\0\0\0\0\0\0")
     d = k.encrypt("DES encryption algorithm")
-    if k.decrypt(d) != "DES encryption algorithm":
+    if k.decrypt(d).decode() != "DES encryption algorithm":
         print("Test 1 Error: Unencypted data block does not match start data")
 
     k = DES("\0\0\0\0\0\0\0\0", CBC, "\0\0\0\0\0\0\0\0")
     d = k.encrypt("Default string of text", '*')
-    if k.decrypt(d, "*") != "Default string of text":
+    if k.decrypt(d, "*").decode() != "Default string of text":
         print("Test 2 Error: Unencypted data block does not match start data")
 
     k = DES("\r\n\tABC\r\n")
     d = k.encrypt("String to Pad", '*')
-    if k.decrypt(d) != "String to Pad***":
+    if k.decrypt(d).decode() != "String to Pad***":
         print("'%s'" % k.decrypt(d))
         print("Test 3 Error: Unencypted data block does not match start data")
 
@@ -819,7 +819,7 @@ def __profile__():
 # profile.run('__filetest__()')
 
 if __name__ == '__main__':
-    __test__()
+    # __test__()
     # __fulltest__()
     # __filetest__()
-    # __profile__()
+    __profile__()
