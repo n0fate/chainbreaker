@@ -556,6 +556,8 @@ class TripleDES(object):
             self.__key3 = self.__key1
         else:
             self.__key3 = DES(key[16:])
+        if isinstance(key, str):
+            key = key.encode()
         self.__key = key
 
     def getMode(self):
@@ -605,22 +607,23 @@ class TripleDES(object):
             return self.__key3.encrypt(data)
 
         if self.getMode() == CBC:
-            raise Exception("This code hasn't been tested yet")
-            if len(data) % self.block_size != 0:
-                raise Exception("CBC mode needs datalen to be a multiple of blocksize (ignoring padding for now)")
-
-            # simple
-            lastblock = self.getIV()
-            retdata = ''
-            for i in range(0, len(data), self.block_size):
+            # CBC updated code
+            self.__key1.setIV(self.getIV())
+            self.__key2.setIV(self.getIV())
+            self.__key3.setIV(self.getIV())
+            i = 0
+            retdata = []
+            while i< len(data):
                 thisblock = data[i:i + self.block_size]
-                # the XOR for CBC
-                thisblock = self._xorstr(lastblock, thisblock)
                 thisblock = self.__key1.encrypt(thisblock)
                 thisblock = self.__key2.decrypt(thisblock)
-                lastblock = self.__key3.encrypt(thisblock)
-                retdata += lastblock
-            return retdata
+                thisblock = self.__key3.encrypt(thisblock)
+                self.__key1.setIV(thisblock)
+                self.__key2.setIV(thisblock)
+                self.__key3.setIV(thisblock)
+                retdata.append(thisblock)
+                i += self.block_size
+            return bytes.fromhex('').join(retdata)
 
         raise Exception("Not reached")
 
@@ -644,20 +647,23 @@ class TripleDES(object):
             return self.__key1.decrypt(data, pad)
 
         if self.getMode() == CBC:
-            if len(data) % self.block_size != 0:
-                raise Exception("Can only decrypt multiples of blocksize")
-
-            lastblock = self.getIV()
-            retdata = ''
-            for i in range(0, len(data), self.block_size):
-                # can I arrange this better? probably...
+            # CBC updated code
+            self.__key1.setIV(self.getIV())
+            self.__key2.setIV(self.getIV())
+            self.__key3.setIV(self.getIV())
+            i = 0
+            retdata = []
+            while i< len(data):
                 cipherchunk = data[i:i + self.block_size]
                 thisblock = self.__key3.decrypt(cipherchunk)
                 thisblock = self.__key2.encrypt(thisblock)
                 thisblock = self.__key1.decrypt(thisblock)
-                retdata += self.xorstr(lastblock, thisblock)
-                lastblock = cipherchunk
-            return retdata
+                self.__key1.setIV(cipherchunk)
+                self.__key2.setIV(cipherchunk)
+                self.__key3.setIV(cipherchunk)
+                retdata.append(thisblock)
+                i += self.block_size
+            return bytes.fromhex('').join(retdata)
 
         raise Exception("Not reached")
 
