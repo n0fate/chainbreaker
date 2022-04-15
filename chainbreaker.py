@@ -645,7 +645,7 @@ class Chainbreaker(object):
 
         cipher = TripleDES(key, CBC, bytearray(iv))
 
-        plain = cipher.decrypt(data)
+        plain = cipher.decrypt(data).decode()
 
         # now check padding
         pad = ord(plain[-1])
