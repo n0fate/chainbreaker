@@ -581,10 +581,7 @@ class TripleDES(object):
         if len(x) != len(y):
             raise Exception("string lengths differ %d %d" % (len(x), len(y)))
 
-        ret = ''
-        for i in range(len(x)):
-            ret += chr(ord(x[i]) ^ ord(y[i]))
-
+        ret = bytes(i^j for i,j in zip(x,y))
         return ret
 
     def encrypt(self, data, pad=''):
@@ -607,23 +604,17 @@ class TripleDES(object):
             return self.__key3.encrypt(data)
 
         if self.getMode() == CBC:
-            # CBC updated code
-            self.__key1.setIV(self.getIV())
-            self.__key2.setIV(self.getIV())
-            self.__key3.setIV(self.getIV())
-            i = 0
-            retdata = []
-            while i< len(data):
-                thisblock = data[i:i + self.block_size]
+            # could be better
+            lastblock = self.getIV()
+            retdata = b""
+            for i in range(0, len(data), self.block_size):
+                thisblock = data[i:i+self.block_size]
+                thisblock = self.xorstr(lastblock, thisblock)
                 thisblock = self.__key1.encrypt(thisblock)
                 thisblock = self.__key2.decrypt(thisblock)
-                thisblock = self.__key3.encrypt(thisblock)
-                self.__key1.setIV(thisblock)
-                self.__key2.setIV(thisblock)
-                self.__key3.setIV(thisblock)
-                retdata.append(thisblock)
-                i += self.block_size
-            return bytes.fromhex('').join(retdata)
+                lastblock = self.__key3.encrypt(thisblock)
+                resdata += lastblock
+            return resdata
 
         raise Exception("Not reached")
 
@@ -647,23 +638,17 @@ class TripleDES(object):
             return self.__key1.decrypt(data, pad)
 
         if self.getMode() == CBC:
-            # CBC updated code
-            self.__key1.setIV(self.getIV())
-            self.__key2.setIV(self.getIV())
-            self.__key3.setIV(self.getIV())
-            i = 0
-            retdata = []
-            while i< len(data):
-                cipherchunk = data[i:i + self.block_size]
+            # could be better
+            lastblock = self.getIV()
+            retdata = b""
+            for i in range(0, len(data), self.block_size):
+                cipherchunk = data[i: i+self.block_size]
                 thisblock = self.__key3.decrypt(cipherchunk)
                 thisblock = self.__key2.encrypt(thisblock)
                 thisblock = self.__key1.decrypt(thisblock)
-                self.__key1.setIV(cipherchunk)
-                self.__key2.setIV(cipherchunk)
-                self.__key3.setIV(cipherchunk)
-                retdata.append(thisblock)
-                i += self.block_size
-            return bytes.fromhex('').join(retdata)
+                retdata += self.xorstr(lastblock, thisblock)
+                lastblock = cipherchunk
+            return retdata
 
         raise Exception("Not reached")
 
@@ -819,7 +804,7 @@ def __profile__():
 # profile.run('__filetest__()')
 
 if __name__ == '__main__':
-    # __test__()
+    __test__()
     # __fulltest__()
     # __filetest__()
-    __profile__()
+    # __profile__()

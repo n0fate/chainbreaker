@@ -32,6 +32,8 @@ import base64
 import string
 import uuid
 
+printable_chars = bytes(string.printable, 'ascii')
+
 class Chainbreaker(object):
     ATOM_SIZE = 4
     KEYCHAIN_SIGNATURE = "kych"
@@ -73,9 +75,7 @@ class Chainbreaker(object):
         if not self._is_valid_keychain():
             self.logger.warning('Keychain signature does not match. are you sure this is a valid keychain file?')
 
-        self._unlock_password = unlock_password
-        if unlock_password is not None:
-            self._unlock_password = unlock_password.encode()
+        self.unlock_password = unlock_password
         self.unlock_key = unlock_key
         self.unlock_file = unlock_file
 
@@ -268,7 +268,7 @@ class Chainbreaker(object):
 
         key_blob_record = _KEY_BLOB(record[:+_KEY_BLOB.STRUCT.size])
 
-        if SECURE_STORAGE_GROUP != str(record[key_blob_record.TotalLength + 8:key_blob_record.TotalLength + 8 + 4]):
+        if SECURE_STORAGE_GROUP != record[key_blob_record.TotalLength + 8:key_blob_record.TotalLength + 8 + 4].decode():
             return '', '', '', 1
 
         cipher_len = key_blob_record.TotalLength - key_blob_record.StartCryptoBlob
@@ -582,6 +582,8 @@ class Chainbreaker(object):
 
     @unlock_password.setter
     def unlock_password(self, unlock_password):
+        if isinstance(unlock_password, str):
+            unlock_password = unlock_password.encode()
         self._unlock_password = unlock_password
 
         if self._unlock_password:
@@ -693,10 +695,10 @@ class Chainbreaker(object):
 
         # now we handle the unwrapping. we need to take the first 32 bytes,
         # and reverse them.
-        revplain = ''
-        for i in range(32):
-            revplain += plain[31 - i]
-
+        # revplain = b''
+        # for i in range(32):
+        #     revplain += plain[31 - i]
+        revplain = (plain[:32])[::-1]
         # now the real key gets found. */
         plain = Chainbreaker._kcdecrypt(dbkey, iv, revplain)
 
@@ -930,7 +932,7 @@ class Chainbreaker(object):
             try:
                 if self.SSGP and self.DBKey:
                     self._password = Chainbreaker._kcdecrypt(self.DBKey, self.SSGP.IV, self.SSGP.EncryptedPassword)
-                    if not all(c in string.printable for c in self._password):
+                    if not all(c in printable_chars for c in self._password):
                         self._password = base64.b64encode(self._password)
                         self.password_b64_encoded = True
                     self.locked = False
@@ -943,9 +945,9 @@ class Chainbreaker(object):
         def get_password_output_str(self):
             password = self.Password
             if self.password_b64_encoded:
-                return ' [-] Base64 Encoded Password: {}\n'.format(password)
+                return ' [-] Base64 Encoded Password: {}\n'.format(password.decode())
             else:
-                return ' [-] Password: {}\n'.format(password)
+                return ' [-] Password: {}\n'.format(password.decode())
 
         @property
         def Password(self):
