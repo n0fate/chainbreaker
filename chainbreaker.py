@@ -645,16 +645,16 @@ class Chainbreaker(object):
 
         cipher = TripleDES(key, CBC, bytearray(iv))
 
-        plain = cipher.decrypt(data).decode()
+        plain = cipher.decrypt(data)
 
         # now check padding
-        pad = ord(plain[-1])
+        pad = plain[-1]
         if pad > 8:
             logger.debug("Bad padding byte. Keychain password might be incorrect.")
             return ''
 
         for z in plain[-pad:]:
-            if ord(z) != pad:
+            if z != pad:
                 logger.debug("Bad padding byte. Keychain password might be incorrect.")
                 return ''
 
