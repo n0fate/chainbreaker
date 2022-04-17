@@ -350,7 +350,7 @@ class Chainbreaker(object):
 
     # ## Documents : http://www.opensource.apple.com/source/securityd/securityd-55137.1/doc/BLOBFORMAT
     def _generate_master_key(self, pw):
-        return b2s(PBKDF2(pw, bytearray(self.dbblob.Salt), 1000, Chainbreaker.KEYLEN))
+        return PBKDF2(pw, bytearray(self.dbblob.Salt), 1000, Chainbreaker.KEYLEN).key
 
     # ## find DBBlob and extract Wrapping key
     def _find_wrapping_key(self, master):
@@ -646,18 +646,18 @@ class Chainbreaker(object):
         if len(data) % Chainbreaker.BLOCKSIZE != 0:
             return ''
 
-        cipher = TripleDES(key, CBC, b2s(bytearray(iv)))
+        cipher = TripleDES(key, CBC, bytearray(iv))
 
         plain = cipher.decrypt(data)
 
         # now check padding
-        pad = ord(plain[-1])
+        pad = plain[-1]
         if pad > 8:
             logger.debug("Bad padding byte. Keychain password might be incorrect.")
             return ''
 
         for z in plain[-pad:]:
-            if ord(z) != pad:
+            if z != pad:
                 logger.debug("Bad padding byte. Keychain password might be incorrect.")
                 return ''
 
@@ -904,7 +904,7 @@ class Chainbreaker(object):
             # output += " [-] Serial Number: %s\n" % self.Serial_Number
             # output += " [-] Subject Key Identifier: %s\n" % self.Subject_Key_Identifier
             # output += " [-] Public Key Hash: %s\n" % self.Public_Key_Hash
-            output += " [-] Certificate: %s\n" % base64.b64encode(self.Certificate).decode('utf-8')
+            output += " [-] Certificate: %s\n" % b2s(base64.b64encode(self.Certificate))
             return output
 
         @property

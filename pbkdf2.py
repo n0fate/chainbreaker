@@ -15,26 +15,30 @@ import hmac
 from binascii import hexlify, unhexlify
 from struct import pack
 
+def s2b(s):
+    if type(s) == str:
+        return s.encode('utf-8')
+    return s
 
 class PBKDF2(object):
     BLOCKLEN = 20
 
     # this is what you want to call.
     def __init__(self, password, salt, itercount, keylen, hashfn=sha1):
-        self.password = password
+        self.password = s2b(password)
         self.salt = salt
         self.itercount = itercount
         self.keylen = keylen
         self.hashfn = hashfn
 
         # l - number of output blocks to produce
-        l = self.keylen / PBKDF2.BLOCKLEN
+        l = self.keylen // PBKDF2.BLOCKLEN
         if self.keylen % PBKDF2.BLOCKLEN != 0:
             l += 1
 
         h = hmac.new(self.password, None, self.hashfn)
 
-        T = ""
+        T = b""
         for i in range(1, l + 1):
             T += PBKDF2._pbkdf2_f(h, self.salt, self.itercount, i)
 
@@ -43,11 +47,15 @@ class PBKDF2(object):
     @staticmethod
     def _xorstr(a, b):
         if len(a) != len(b):
+            print(a)
+            print(b)
             raise Exception("xorstr(): lengths differ")
 
-        ret = ''
+        ret = b''
+        a = s2b(a)
+        b = s2b(b)
         for i in range(len(a)):
-            ret += chr(ord(a[i]) ^ ord(b[i]))
+            ret += bytes([a[i] ^ b[i]])
 
         return ret
 
