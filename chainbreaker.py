@@ -556,9 +556,9 @@ class Chainbreaker(object):
         return record
 
     def _get_base_address(self, table_name, offset=None):
-        if table_name == 23972:
-            table_name = 16
-        if table_name == 30912:
+        if table_name >= 0x4000 and table_name < 0x5000:
+            table_name = 15
+        if table_name >= 0x5000 and table_name < 0x6000:
             table_name = 16
         base_address = _APPL_DB_HEADER.STRUCT.size + self._get_table_offset(table_name)
         if offset:
