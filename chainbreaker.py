@@ -945,8 +945,12 @@ class Chainbreaker(object):
         def get_password_output_str(self):
             password = self.Password
             if self.password_b64_encoded:
+                if isinstance(password, str):
+                    return ' [-] Base64 Encoded Password: {}\n'.format(password)
                 return ' [-] Base64 Encoded Password: {}\n'.format(password.decode())
             else:
+                if isinstance(password, str):
+                    return ' [-] Password: {}\n'.format(password)
                 return ' [-] Password: {}\n'.format(password.decode())
 
         @property
