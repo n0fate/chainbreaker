@@ -186,6 +186,7 @@ class Chainbreaker(object):
 
         except OSError as e:
             self.logger.critical("Unable to read keychain: %s" % e)
+            raise e
 
     # Simple check to make sure the keychain we're looking at is valid.
     # A valid keychain begins with "kych"
@@ -735,7 +736,7 @@ class Chainbreaker(object):
             file_name = self.FileName + self.FileExt
             iteration = 1
             while os.path.exists(os.path.join(output_directory, file_name)):
-                file_name = "%s.%s%s" % (self.FileName, iteration, self.FileExt)
+                file_name = f"{self.FileName}.{iteration}{self.FileExt}"
                 iteration += 1
 
             file_path = os.path.join(output_directory, file_name)
