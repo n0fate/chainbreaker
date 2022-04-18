@@ -460,8 +460,8 @@ class _KEYCHAIN_TIME(object):
     STRPTIME_FORMAT = "%Y%m%d%H%M%SZ"
 
     def __init__(self, buffer):
-        self.Value = _KEYCHAIN_TIME.STRUCT.unpack(buffer)[0].strip('\x00')
-        self.Time = datetime.strptime(self.Value, _KEYCHAIN_TIME.STRPTIME_FORMAT)
+        self.Value = _KEYCHAIN_TIME.STRUCT.unpack(buffer)[0].strip(b'\x00')
+        self.Time = datetime.strptime(self.Value.decode(), _KEYCHAIN_TIME.STRPTIME_FORMAT)
 
     def __repr__(self):
         return
@@ -484,7 +484,7 @@ class _FOUR_CHAR_CODE(object):
 class _LV(object):
     def __init__(self, buffer, length):
         self.STRUCT = Struct(">" + str(length) + "s")
-        self.Value = self.STRUCT.unpack(buffer)[0].strip('\x00')
+        self.Value = self.STRUCT.unpack(buffer)[0].strip(b'\x00')
 
 
 class _RECORD_OFFSET(_INT):

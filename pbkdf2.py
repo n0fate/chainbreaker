@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3 
 
 # A simple implementation of pbkdf2 using stock python modules. See RFC2898
 # for details. Basically, it derives a key from a password and salt.
@@ -28,13 +28,13 @@ class PBKDF2(object):
         self.hashfn = hashfn
 
         # l - number of output blocks to produce
-        l = self.keylen / PBKDF2.BLOCKLEN
+        l = self.keylen // PBKDF2.BLOCKLEN
         if self.keylen % PBKDF2.BLOCKLEN != 0:
             l += 1
 
         h = hmac.new(self.password, None, self.hashfn)
 
-        T = ""
+        T = b""
         for i in range(1, l + 1):
             T += PBKDF2._pbkdf2_f(h, self.salt, self.itercount, i)
 
@@ -45,10 +45,7 @@ class PBKDF2(object):
         if len(a) != len(b):
             raise Exception("xorstr(): lengths differ")
 
-        ret = ''
-        for i in range(len(a)):
-            ret += chr(ord(a[i]) ^ ord(b[i]))
-
+        ret = bytes(i^j for i,j in zip(a, b))
         return ret
 
     @staticmethod
@@ -84,8 +81,8 @@ def test():
     password = 'All n-entities must communicate with other n-entities via n-1 entiteeheehees'
     itercount = 500
     keylen = 16
-    ret = PBKDF2(password, salt, itercount, keylen)
-    print("key:      %s" % hexlify(str(ret)))
+    ret = PBKDF2(password.encode(), salt, itercount, keylen)
+    print("key: ", " ".join(["{:02X}".format(x) for x in ret.key]))
     print("expected: 6A 89 70 BF 68 C9 2C AE A8 4A 8D F2 85 10 85 86")
 
 

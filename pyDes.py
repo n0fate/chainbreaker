@@ -2,7 +2,7 @@
 # Documentation				    #
 #############################################################################
 
-# Author:   Todd Whiteman
+# Author:   Todd Whiteman 
 # Date:     7th May, 2003
 # Verion:   1.1
 # Homepage: http://home.pacific.net.au/~twhitema/des.html
@@ -208,11 +208,13 @@ class DES(object):
         self.setKey(key)
 
     def getKey(self):
-        """getKey() -> string"""
+        """getKey() -> bytes"""
         return self.__key
 
     def setKey(self, key):
         """Will set the crypting key for this object. Must be 8 bytes."""
+        if isinstance(key, str):
+            key = key.encode("ascii")
         self.__key = key
         self.__create_sub_keys()
 
@@ -225,13 +227,15 @@ class DES(object):
         self.__mode = mode
 
     def getIV(self):
-        """getIV() -> string"""
+        """getIV() -> bytes"""
         return self.__iv
 
     def setIV(self, IV):
         """Will set the Initial Value, used in conjunction with CBC mode"""
         if not IV or len(IV) != self.block_size:
             raise ValueError("Invalid Initial Value (IV), must be a multiple of " + str(self.block_size) + " bytes")
+        if isinstance(IV, str):
+            IV = IV.encode('ascii')
         self.__iv = IV
 
     def getPadding(self):
@@ -243,9 +247,8 @@ class DES(object):
         l = len(data) * 8
         result = [0] * l
         pos = 0
-        for c in data:
+        for ch in data:
             i = 7
-            ch = ord(c)
             while i >= 0:
                 if ch & (1 << i) != 0:
                     result[pos] = 1
@@ -258,21 +261,21 @@ class DES(object):
 
     def __BitList_to_String(self, data):
         """Turn the list of bits -> data, into a string"""
-        result = ''
+        result = []
         pos = 0
         c = 0
         while pos < len(data):
             c += data[pos] << (7 - (pos % 8))
             if (pos % 8) == 7:
-                result += chr(c)
+                result.append(c)
                 c = 0
             pos += 1
 
-        return result
+        return bytes(result)
 
     def __permutate(self, table, block):
         """Permutate this block with the specified table"""
-        return map(lambda x: block[x], table)
+        return list(map(lambda x: block[x], table))
 
     # Transform the secret key, so that it is ready for data processing
     # Create the 16 subkeys, K[1] - K[16]
@@ -325,7 +328,7 @@ class DES(object):
             self.R = self.__permutate(DES.__expansion_table, self.R)
 
             # Exclusive or R[i - 1] with K[i], create B[1] to B[8] whilst here
-            self.R = map(lambda x, y: x ^ y, self.R, self.Kn[iteration])
+            self.R = list(map(lambda x, y: x ^ y, self.R, self.Kn[iteration]))
             B = [self.R[:6], self.R[6:12], self.R[12:18], self.R[18:24], self.R[24:30], self.R[30:36], self.R[36:42],
                  self.R[42:]]
             # Optimization: Replaced below commented code with above
@@ -362,7 +365,7 @@ class DES(object):
             self.R = self.__permutate(DES.__p, Bn)
 
             # Xor with L[i - 1]
-            self.R = map(lambda x, y: x ^ y, self.R, self.L)
+            self.R = list(map(lambda x, y: x ^ y, self.R, self.L))
             # Optimization: This now replaces the below commented code
             # j = 0
             # while j < len(self.R):
@@ -424,7 +427,7 @@ class DES(object):
             # Xor with IV if using CBC mode
             if self.getMode() == CBC:
                 if crypt_type == DES.ENCRYPT:
-                    block = map(lambda x, y: x ^ y, block, iv)
+                    block = list(map(lambda x, y: x ^ y, block, iv))
                 # j = 0
                 # while j < len(block):
                 #	block[j] = block[j] ^ iv[j]
@@ -433,7 +436,7 @@ class DES(object):
                 processed_block = self.__des_crypt(block, crypt_type)
 
                 if crypt_type == DES.DECRYPT:
-                    processed_block = map(lambda x, y: x ^ y, processed_block, iv)
+                    processed_block = list(map(lambda x, y: x ^ y, processed_block, iv))
                     # j = 0
                     # while j < len(processed_block):
                     #	processed_block[j] = processed_block[j] ^ iv[j]
@@ -457,12 +460,12 @@ class DES(object):
         if crypt_type == DES.DECRYPT and self.getPadding():
             # print("Removing decrypt pad")
             s = result[-1]
-            while s[-1] == self.getPadding():
+            while s[-1] == ord(self.getPadding().decode()):
                 s = s[:-1]
             result[-1] = s
 
         # Return the full crypted string
-        return ''.join(result)
+        return bytes.fromhex('').join(result)
 
     def encrypt(self, data, pad=''):
         """
@@ -477,6 +480,10 @@ class DES(object):
         data will then be padded to a multiple of 8 bytes with this
         pad character.
         """
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+        if isinstance(pad, str):
+            pad = pad.encode('utf-8')
         self.__padding = pad
         return self.crypt(data, DES.ENCRYPT)
 
@@ -493,6 +500,10 @@ class DES(object):
         removed from the end of the string. This pad removal only occurs on the
         last 8 bytes of the data (last data block).
         """
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+        if isinstance(pad, str):
+            pad = pad.encode('utf-8')
         self.__padding = pad
         return self.crypt(data, DES.DECRYPT)
 
@@ -545,6 +556,8 @@ class TripleDES(object):
             self.__key3 = self.__key1
         else:
             self.__key3 = DES(key[16:])
+        if isinstance(key, str):
+            key = key.encode()
         self.__key = key
 
     def getMode(self):
@@ -568,10 +581,7 @@ class TripleDES(object):
         if len(x) != len(y):
             raise Exception("string lengths differ %d %d" % (len(x), len(y)))
 
-        ret = ''
-        for i in range(len(x)):
-            ret += chr(ord(x[i]) ^ ord(y[i]))
-
+        ret = bytes(i^j for i,j in zip(x,y))
         return ret
 
     def encrypt(self, data, pad=''):
@@ -594,22 +604,17 @@ class TripleDES(object):
             return self.__key3.encrypt(data)
 
         if self.getMode() == CBC:
-            raise Exception("This code hasn't been tested yet")
-            if len(data) % self.block_size != 0:
-                raise Exception("CBC mode needs datalen to be a multiple of blocksize (ignoring padding for now)")
-
-            # simple
+            # could be better
             lastblock = self.getIV()
-            retdata = ''
+            retdata = b""
             for i in range(0, len(data), self.block_size):
-                thisblock = data[i:i + self.block_size]
-                # the XOR for CBC
-                thisblock = self._xorstr(lastblock, thisblock)
+                thisblock = data[i:i+self.block_size]
+                thisblock = self.xorstr(lastblock, thisblock)
                 thisblock = self.__key1.encrypt(thisblock)
                 thisblock = self.__key2.decrypt(thisblock)
                 lastblock = self.__key3.encrypt(thisblock)
-                retdata += lastblock
-            return retdata
+                resdata += lastblock
+            return resdata
 
         raise Exception("Not reached")
 
@@ -633,14 +638,11 @@ class TripleDES(object):
             return self.__key1.decrypt(data, pad)
 
         if self.getMode() == CBC:
-            if len(data) % self.block_size != 0:
-                raise Exception("Can only decrypt multiples of blocksize")
-
+            # could be better
             lastblock = self.getIV()
-            retdata = ''
+            retdata = b""
             for i in range(0, len(data), self.block_size):
-                # can I arrange this better? probably...
-                cipherchunk = data[i:i + self.block_size]
+                cipherchunk = data[i: i+self.block_size]
                 thisblock = self.__key3.decrypt(cipherchunk)
                 thisblock = self.__key2.encrypt(thisblock)
                 thisblock = self.__key1.decrypt(thisblock)
@@ -714,8 +716,6 @@ def example_des():
     # print("Data     : " + data)
 
     d = k.encrypt(data)
-    # print("Encrypted: " + d)
-
     d = k.decrypt(d)
     # print("Decrypted: " + d)
     # print("DES time taken: %f (6 crypt operations)" % (time() - t))
@@ -737,17 +737,17 @@ def __fulltest__():
 
     k = DES("\0\0\0\0\0\0\0\0", CBC, "\0\0\0\0\0\0\0\0")
     d = k.encrypt("DES encryption algorithm")
-    if k.decrypt(d) != "DES encryption algorithm":
+    if k.decrypt(d).decode() != "DES encryption algorithm":
         print("Test 1 Error: Unencypted data block does not match start data")
 
     k = DES("\0\0\0\0\0\0\0\0", CBC, "\0\0\0\0\0\0\0\0")
     d = k.encrypt("Default string of text", '*')
-    if k.decrypt(d, "*") != "Default string of text":
+    if k.decrypt(d, "*").decode() != "Default string of text":
         print("Test 2 Error: Unencypted data block does not match start data")
 
     k = DES("\r\n\tABC\r\n")
     d = k.encrypt("String to Pad", '*')
-    if k.decrypt(d) != "String to Pad***":
+    if k.decrypt(d).decode() != "String to Pad***":
         print("'%s'" % k.decrypt(d))
         print("Test 3 Error: Unencypted data block does not match start data")
 

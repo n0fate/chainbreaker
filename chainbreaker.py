@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3 
 
 # Author : n0fate
 # E-Mail rapfer@gmail.com, n0fate@n0fate.com
@@ -31,6 +31,8 @@ import logging
 import base64
 import string
 import uuid
+
+printable_chars = bytes(string.printable, 'ascii')
 
 class Chainbreaker(object):
     ATOM_SIZE = 4
@@ -150,7 +152,7 @@ class Chainbreaker(object):
             table_meta, private_key_list = self._get_table_from_type(CSSM_DL_DB_RECORD_PRIVATE_KEY)
             for i, private_key_offset in enumerate(private_key_list, 1):
               try:
-                print "private_key_offset", self._get_private_key_record(private_key_offset)
+                # print("private_key_offset", self._get_private_key_record(private_key_offset))
                 entries.append(
                     self._get_private_key_record(private_key_offset))
 
@@ -184,7 +186,7 @@ class Chainbreaker(object):
     # Simple check to make sure the keychain we're looking at is valid.
     # A valid keychain begins with "kych"
     def _is_valid_keychain(self):
-        if self.kc_buffer[0:4] != Chainbreaker.KEYCHAIN_SIGNATURE:
+        if self.kc_buffer[0:4].decode() != Chainbreaker.KEYCHAIN_SIGNATURE:
             return False
         return True
 
@@ -207,7 +209,7 @@ class Chainbreaker(object):
         table_list = []
         schema_info = _APPL_DB_SCHEMA(self.kc_buffer[offset:offset + _APPL_DB_SCHEMA.STRUCT.size])
 
-        for i in xrange(schema_info.TableCount):
+        for i in range(schema_info.TableCount):
             base_addr = _APPL_DB_HEADER.STRUCT.size + _APPL_DB_SCHEMA.STRUCT.size
             table_list.append(_TABLE_ID(self.kc_buffer[base_addr + (Chainbreaker.ATOM_SIZE * i):base_addr + (
                     Chainbreaker.ATOM_SIZE * i) + Chainbreaker.ATOM_SIZE]).Value)
@@ -248,7 +250,7 @@ class Chainbreaker(object):
     # Returns a dict of table indexes keyed off of the TableId
     def _get_table_name_to_list(self, record_list, table_list):
         table_dict = {}
-        for count in xrange(len(record_list)):
+        for count in range(len(record_list)):
             table_metadata, generic_list = self._get_table(table_list[count])
             table_dict[table_metadata.TableId] = count  # extract valid table list
 
@@ -266,7 +268,7 @@ class Chainbreaker(object):
 
         key_blob_record = _KEY_BLOB(record[:+_KEY_BLOB.STRUCT.size])
 
-        if SECURE_STORAGE_GROUP != str(record[key_blob_record.TotalLength + 8:key_blob_record.TotalLength + 8 + 4]):
+        if SECURE_STORAGE_GROUP != record[key_blob_record.TotalLength + 8:key_blob_record.TotalLength + 8 + 4].decode():
             return '', '', '', 1
 
         cipher_len = key_blob_record.TotalLength - key_blob_record.StartCryptoBlob
@@ -297,27 +299,27 @@ class Chainbreaker(object):
     # Get 4 character code from the keychain buffer
     def _get_four_char_code(self, base_addr, pcol):
         if pcol <= 0:
-            return ''
+            return b''
         else:
             return _FOUR_CHAR_CODE(self.kc_buffer[base_addr + pcol:base_addr + pcol + 4]).Value
 
     # Get an lv from the keychain buffer
     def _get_lv(self, base_addr, pcol):
         if pcol <= 0:
-            return ''
+            return b''
 
         str_length = _INT(self.kc_buffer[base_addr + pcol:base_addr + pcol + 4]).Value
         # 4byte arrangement
         if (str_length % 4) == 0:
-            real_str_len = (str_length / 4) * 4
+            real_str_len = (str_length // 4) * 4
         else:
-            real_str_len = ((str_length / 4) + 1) * 4
+            real_str_len = ((str_length // 4) + 1) * 4
 
         try:
             data = _LV(self.kc_buffer[base_addr + pcol + 4:base_addr + pcol + 4 + real_str_len], real_str_len).Value
         except struct.error:
             self.logger.debug('LV string length is too long.')
-            return ''
+            return b''
 
         return data
 
@@ -331,10 +333,10 @@ class Chainbreaker(object):
 
         # now we handle the unwrapping. we need to take the first 32 bytes,
         # and reverse them.
-        revplain = ''
-        for i in range(len(plain)):
-            revplain += plain[len(plain) - 1 - i]
-
+        # revplain = ''
+        # for i in range(len(plain)):
+        #     revplain += plain[len(plain) - 1 - i]
+        revplain = plain[::-1]
         # now the real key gets found. */
         plain = Chainbreaker._kcdecrypt(self.db_key, iv, revplain)
 
@@ -345,7 +347,7 @@ class Chainbreaker(object):
 
     # ## Documents : http://www.opensource.apple.com/source/securityd/securityd-55137.1/doc/BLOBFORMAT
     def _generate_master_key(self, pw):
-        return str(PBKDF2(pw, str(bytearray(self.dbblob.Salt)), 1000, Chainbreaker.KEYLEN))
+        return PBKDF2(pw, bytearray(self.dbblob.Salt), 1000, Chainbreaker.KEYLEN).key
 
     # ## find DBBlob and extract Wrapping key
     def _find_wrapping_key(self, master):
@@ -413,8 +415,8 @@ class Chainbreaker(object):
         else:
             keyname, privatekey = self._private_key_decryption(record[10], record[9])
         return self.PrivateKeyRecord(
-            print_name=record[0],
-            label=record[1],
+            print_name=record[0].decode(),    #decode
+            label=record[1],        #decode
             key_class=KEY_TYPE[record[2]],
             private=record[3],
             key_type=record[4],
@@ -431,7 +433,7 @@ class Chainbreaker(object):
     def _get_public_key_record(self, record_offset):
         record = self._get_key_record(self._get_table_offset(CSSM_DL_DB_RECORD_PUBLIC_KEY), record_offset)
         return self.PublicKeyRecord(
-            print_name=record[0],
+            print_name=record[0].decode(),
             label=record[1],
             key_class=KEY_TYPE[record[2]],
             private=record[3],
@@ -463,7 +465,7 @@ class Chainbreaker(object):
                 self._get_int(base_addr, record_meta.EffectiveKeySize & 0xFFFFFFFE),
                 self._get_int(base_addr, record_meta.Extractable & 0xFFFFFFFE),
                 STD_APPLE_ADDIN_MODULE[
-                    str(self._get_lv(base_addr, record_meta.KeyCreator & 0xFFFFFFFE)).split('\x00')[0]],
+                    (self._get_lv(base_addr, record_meta.KeyCreator & 0xFFFFFFFE)).split(b'\x00')[0].decode()],
                 iv,
                 key]
 
@@ -554,10 +556,23 @@ class Chainbreaker(object):
         return record
 
     def _get_base_address(self, table_name, offset=None):
-        if table_name == 23972:
+        # if table_name >= 0x4000 and table_name < 0x5000:
+        #     table_name = 15
+        # if table_name >= 0x5000 and table_name < 0x6000:
+        #     table_name = 16
+        if table_name >= 0x3000 and table_name < 0x4e20:     
+            table_name = 15
+        if table_name >= 0x4e20 and table_name < 0x8000:
             table_name = 16
-        if table_name == 30912:
-            table_name = 16
+        # print("TABLE_NAME: ", table_name)        use this for debugging
+        # if table_name == 19984:
+        #     table_name = 15
+        # if table_name == 20360:
+        #     table_name = 16
+        # if table_name == 23972:
+        #     table_name = 16
+        # if table_name == 30912:
+        #     table_name = 16
         base_address = _APPL_DB_HEADER.STRUCT.size + self._get_table_offset(table_name)
         if offset:
             base_address += offset
@@ -580,6 +595,8 @@ class Chainbreaker(object):
 
     @unlock_password.setter
     def unlock_password(self, unlock_password):
+        if isinstance(unlock_password, str):
+            unlock_password = unlock_password.encode()
         self._unlock_password = unlock_password
 
         if self._unlock_password:
@@ -641,18 +658,18 @@ class Chainbreaker(object):
         if len(data) % Chainbreaker.BLOCKSIZE != 0:
             return ''
 
-        cipher = TripleDES(key, CBC, str(bytearray(iv)))
+        cipher = TripleDES(key, CBC, bytearray(iv))
 
         plain = cipher.decrypt(data)
 
         # now check padding
-        pad = ord(plain[-1])
+        pad = plain[-1]
         if pad > 8:
             logger.debug("Bad padding byte. Keychain password might be incorrect.")
             return ''
 
         for z in plain[-pad:]:
-            if ord(z) != pad:
+            if z != pad:
                 logger.debug("Bad padding byte. Keychain password might be incorrect.")
                 return ''
 
@@ -691,10 +708,10 @@ class Chainbreaker(object):
 
         # now we handle the unwrapping. we need to take the first 32 bytes,
         # and reverse them.
-        revplain = ''
-        for i in range(32):
-            revplain += plain[31 - i]
-
+        # revplain = b''
+        # for i in range(32):
+        #     revplain += plain[31 - i]
+        revplain = (plain[:32])[::-1]
         # now the real key gets found. */
         plain = Chainbreaker._kcdecrypt(dbkey, iv, revplain)
 
@@ -740,9 +757,11 @@ class Chainbreaker(object):
             try:
                 with open(file_path, 'wb') as fp:
                     self.logger.info('\t [-] Exported: %s' % file_path)
+                    if isinstance(export_content, str):
+                        export_content = export_content.encode()
                     fp.write(export_content)
                     return True
-            except OSError, e:
+            except OSError as e:
                 self.logger.critical('Exception while attempting to export %s: %s' % (file_path, e))
 
         @property
@@ -765,7 +784,7 @@ class Chainbreaker(object):
 
         def __str__(self):
             return Chainbreaker.KeychainPasswordHash.KEYCHAIN_PASSWORD_HASH_FORMAT % (
-                self.salt, self.iv, self.cypher_text)
+                self.salt.decode('utf-8'), self.iv.decode('utf-8'), self.cypher_text.decode('utf-8'))
 
         @property
         def exportable(self):
@@ -892,14 +911,14 @@ class Chainbreaker(object):
             output = '[+] X509 Certificate\n'
             # output += " [-] Type: %s\n" % self.Type
             # output += " [-] Encoding: %s\n" % self.Encoding
-            output += " [-] Print Name: %s\n" % self.PrintName
+            output += " [-] Print Name: %s\n" % self.PrintName.decode()
             # output += " [-] Alias: %s\n" % self.Alias
             # output += " [-] Subject: %s\n" % self.Subject
             # output += " [-] Issuer: %s\n" % self.Issuer
             # output += " [-] Serial Number: %s\n" % self.Serial_Number
             # output += " [-] Subject Key Identifier: %s\n" % self.Subject_Key_Identifier
             # output += " [-] Public Key Hash: %s\n" % self.Public_Key_Hash
-            output += " [-] Certificate: %s\n" % base64.b64encode(self.Certificate)
+            output += " [-] Certificate: %s\n" % base64.b64encode(self.Certificate).decode()
             return output
 
         @property
@@ -908,7 +927,7 @@ class Chainbreaker(object):
 
         @property
         def FileName(self):
-            return "".join(x for x in self.PrintName if x.isalnum())
+            return "".join(x for x in self.PrintName.decode() if x.isalnum())
 
         @property
         def FileExt(self):
@@ -926,7 +945,7 @@ class Chainbreaker(object):
             try:
                 if self.SSGP and self.DBKey:
                     self._password = Chainbreaker._kcdecrypt(self.DBKey, self.SSGP.IV, self.SSGP.EncryptedPassword)
-                    if not all(c in string.printable for c in self._password):
+                    if not all(c in printable_chars for c in self._password):
                         self._password = base64.b64encode(self._password)
                         self.password_b64_encoded = True
                     self.locked = False
@@ -939,9 +958,13 @@ class Chainbreaker(object):
         def get_password_output_str(self):
             password = self.Password
             if self.password_b64_encoded:
-                return ' [-] Base64 Encoded Password: {}\n'.format(password)
+                if isinstance(password, str):
+                    return ' [-] Base64 Encoded Password: {}\n'.format(password)
+                return ' [-] Base64 Encoded Password: {}\n'.format(password.decode())
             else:
-                return ' [-] Password: {}\n'.format(password)
+                if isinstance(password, str):
+                    return ' [-] Password: {}\n'.format(password)
+                return ' [-] Password: {}\n'.format(password.decode())
 
         @property
         def Password(self):
@@ -958,7 +981,7 @@ class Chainbreaker(object):
 
         @property
         def FileName(self):
-            return "".join(x for x in self.PrintName if x.isalnum())
+            return "".join(x for x in self.PrintName.decode() if x.isalnum())
 
         @property
         def FileExt(self):
@@ -986,13 +1009,13 @@ class Chainbreaker(object):
             output = '[+] Generic Password Record\n'
             output += ' [-] Create DateTime: %s\n' % self.Created  # 16byte string
             output += ' [-] Last Modified DateTime: %s\n' % self.LastModified  # 16byte string
-            output += ' [-] Description: %s\n' % self.Description
-            output += ' [-] Creator: %s\n' % self.Creator
-            output += ' [-] Type: %s\n' % self.Type
-            output += ' [-] Print Name: %s\n' % self.PrintName
-            output += ' [-] Alias: %s\n' % self.Alias
-            output += ' [-] Account: %s\n' % self.Account
-            output += ' [-] Service: %s\n' % self.Service
+            output += ' [-] Description: %s\n' % self.Description.decode()
+            output += ' [-] Creator: %s\n' % self.Creator.decode()
+            output += ' [-] Type: %s\n' % self.Type.decode()
+            output += ' [-] Print Name: %s\n' % self.PrintName.decode()
+            output += ' [-] Alias: %s\n' % self.Alias.decode()
+            output += ' [-] Account: %s\n' % self.Account.decode()
+            output += ' [-] Service: %s\n' % self.Service.decode()
             output += self.get_password_output_str()
 
             return output
@@ -1027,16 +1050,16 @@ class Chainbreaker(object):
             output = '[+] Internet Record\n'
             output += ' [-] Create DateTime: %s\n' % self.Created
             output += ' [-] Last Modified DateTime: %s\n' % self.LastModified
-            output += ' [-] Description: %s\n' % self.Description
-            output += ' [-] Comment: %s\n' % self.Comment
-            output += ' [-] Creator: %s\n' % self.Creator
-            output += ' [-] Type: %s\n' % self.Type
-            output += ' [-] PrintName: %s\n' % self.PrintName
-            output += ' [-] Alias: %s\n' % self.Alias
-            output += ' [-] Protected: %s\n' % self.Protected
-            output += ' [-] Account: %s\n' % self.Account
-            output += ' [-] SecurityDomain: %s\n' % self.SecurityDomain
-            output += ' [-] Server: %s\n' % self.Server
+            output += ' [-] Description: %s\n' % self.Description.decode()
+            output += ' [-] Comment: %s\n' % self.Comment.decode()
+            output += ' [-] Creator: %s\n' % self.Creator.decode()
+            output += ' [-] Type: %s\n' % self.Type.decode()
+            output += ' [-] PrintName: %s\n' % self.PrintName.decode()
+            output += ' [-] Alias: %s\n' % self.Alias.decode()
+            output += ' [-] Protected: %s\n' % self.Protected.decode()
+            output += ' [-] Account: %s\n' % self.Account.decode()
+            output += ' [-] SecurityDomain: %s\n' % self.SecurityDomain.decode()
+            output += ' [-] Server: %s\n' % self.Server.decode()
 
             try:
                 output += ' [-] Protocol Type: %s\n' % PROTOCOL_TYPE[self.ProtocolType]
@@ -1082,16 +1105,16 @@ class Chainbreaker(object):
             output = '[+] AppleShare Record (no longer used in OS X)\n'
             output += ' [-] Create DateTime: %s\n' % self.Created
             output += ' [-] Last Modified DateTime: %s\n' % self.LastModified
-            output += ' [-] Description: %s\n' % self.Description
-            output += ' [-] Comment: %s\n' % self.Comment
-            output += ' [-] Creator: %s\n' % self.Creator
-            output += ' [-] Type: %s\n' % self.Type
-            output += ' [-] PrintName: %s\n' % self.PrintName
-            output += ' [-] Alias: %s\n' % self.Alias
-            output += ' [-] Protected: %s\n' % self.Protected
-            output += ' [-] Account: %s\n' % self.Account
-            output += ' [-] Volume: %s\n' % self.Volume
-            output += ' [-] Server: %s\n' % self.Server
+            output += ' [-] Description: %s\n' % self.Description.decode()
+            output += ' [-] Comment: %s\n' % self.Comment.decode()
+            output += ' [-] Creator: %s\n' % self.Creator.decode()
+            output += ' [-] Type: %s\n' % self.Type.decode()
+            output += ' [-] PrintName: %s\n' % self.PrintName.decode()
+            output += ' [-] Alias: %s\n' % self.Alias.decode()
+            output += ' [-] Protected: %s\n' % self.Protected.decode()
+            output += ' [-] Account: %s\n' % self.Account.decode()
+            output += ' [-] Volume: %s\n' % self.Volume.decode()
+            output += ' [-] Server: %s\n' % self.Server.decode()
 
             try:
                 output += ' [-] Protocol Type: %s\n' % PROTOCOL_TYPE[self.Protocol_Type]
@@ -1261,8 +1284,8 @@ if __name__ == "__main__":
         exit(1)
 
     # Calculate the MD5 and SHA256 of the input keychain file.
-    keychain_md5 = hashlib.md5(args.keychain).hexdigest()
-    keychain_sha256 = hashlib.sha256(args.keychain).hexdigest()
+    keychain_md5 = hashlib.md5(args.keychain.encode('utf-8')).hexdigest()
+    keychain_sha256 = hashlib.sha256(args.keychain.encode('utf-8')).hexdigest()
 
     # Print out some summary info before we actually start doing any work.
     summary_output = [
