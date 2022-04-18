@@ -465,7 +465,7 @@ class Chainbreaker(object):
                 self._get_int(base_addr, record_meta.EffectiveKeySize & 0xFFFFFFFE),
                 self._get_int(base_addr, record_meta.Extractable & 0xFFFFFFFE),
                 STD_APPLE_ADDIN_MODULE[
-                    str(self._get_lv(base_addr, record_meta.KeyCreator & 0xFFFFFFFE)).split('\x00')[0]],
+                    (self._get_lv(base_addr, record_meta.KeyCreator & 0xFFFFFFFE)).split(b'\x00')[0].decode()],
                 iv,
                 key]
 
