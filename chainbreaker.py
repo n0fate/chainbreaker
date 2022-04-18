@@ -152,7 +152,7 @@ class Chainbreaker(object):
             table_meta, private_key_list = self._get_table_from_type(CSSM_DL_DB_RECORD_PRIVATE_KEY)
             for i, private_key_offset in enumerate(private_key_list, 1):
               try:
-                print("private_key_offset", self._get_private_key_record(private_key_offset))
+                # print("private_key_offset", self._get_private_key_record(private_key_offset))
                 entries.append(
                     self._get_private_key_record(private_key_offset))
 
@@ -333,10 +333,10 @@ class Chainbreaker(object):
 
         # now we handle the unwrapping. we need to take the first 32 bytes,
         # and reverse them.
-        revplain = ''
-        for i in range(len(plain)):
-            revplain += plain[len(plain) - 1 - i]
-
+        # revplain = ''
+        # for i in range(len(plain)):
+        #     revplain += plain[len(plain) - 1 - i]
+        revplain = plain[::-1]
         # now the real key gets found. */
         plain = Chainbreaker._kcdecrypt(self.db_key, iv, revplain)
 
@@ -415,8 +415,8 @@ class Chainbreaker(object):
         else:
             keyname, privatekey = self._private_key_decryption(record[10], record[9])
         return self.PrivateKeyRecord(
-            print_name=record[0].decode(),
-            label=record[1].decode(),
+            print_name=record[0].decode(),    #decode
+            label=record[1],        #decode
             key_class=KEY_TYPE[record[2]],
             private=record[3],
             key_type=record[4],
@@ -434,7 +434,7 @@ class Chainbreaker(object):
         record = self._get_key_record(self._get_table_offset(CSSM_DL_DB_RECORD_PUBLIC_KEY), record_offset)
         return self.PublicKeyRecord(
             print_name=record[0].decode(),
-            label=record[1].decode(),
+            label=record[1],
             key_class=KEY_TYPE[record[2]],
             private=record[3],
             key_type=record[4],
@@ -556,14 +556,19 @@ class Chainbreaker(object):
         return record
 
     def _get_base_address(self, table_name, offset=None):
-        # if table_name >= 0x4000 and table_name < 0x5000:
+        if table_name >= 0x3000 and table_name < 0x4e20:     
+            table_name = 15
+        if table_name >= 0x4e20 and table_name < 0x8000:
+            table_name = 16
+        # print("TABLE_NAME: ", table_name)        use this for debugging
+        # if table_name == 19984:
         #     table_name = 15
-        # if table_name >= 0x5000 and table_name < 0x6000:
+        # if table_name == 20360:
         #     table_name = 16
-        if table_name == 23972:
-            table_name = 16
-        if table_name == 30912:
-            table_name = 16
+        # if table_name == 23972:
+        #     table_name = 16
+        # if table_name == 30912:
+        #     table_name = 16
         base_address = _APPL_DB_HEADER.STRUCT.size + self._get_table_offset(table_name)
         if offset:
             base_address += offset
