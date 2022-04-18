@@ -556,6 +556,10 @@ class Chainbreaker(object):
         return record
 
     def _get_base_address(self, table_name, offset=None):
+        # if table_name >= 0x4000 and table_name < 0x5000:
+        #     table_name = 15
+        # if table_name >= 0x5000 and table_name < 0x6000:
+        #     table_name = 16
         if table_name >= 0x3000 and table_name < 0x4e20:     
             table_name = 15
         if table_name >= 0x4e20 and table_name < 0x8000:
