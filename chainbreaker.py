@@ -32,11 +32,7 @@ import logging
 import base64
 import string
 import uuid
-
-def b2s(b):
-    if type(b) is not str:
-        return b.decode('utf-8')
-    return b
+from util import *
 
 class Chainbreaker(object):
     ATOM_SIZE = 4
@@ -743,9 +739,9 @@ class Chainbreaker(object):
 
             # Finish exporting the record.
             try:
-                with open(file_path, 'wb') as fp:
-                    self.logger.info('\t [-] Exported: %s' % file_path)
-                    fp.write(export_content)
+                with open(file_path, 'w') as fp:
+                    fp.write(b2s(export_content))
+                    self.logger.info(f'\t [-] Exported: {file_path}')
                     return True
             except OSError as e:
                 self.logger.critical('Exception while attempting to export %s: %s' % (file_path, e))
@@ -774,7 +770,7 @@ class Chainbreaker(object):
 
         @property
         def exportable(self):
-            return self.__str__()
+            return str(self)
 
         @property
         def FileName(self):
@@ -959,7 +955,7 @@ class Chainbreaker(object):
 
         @property
         def exportable(self):
-            return self.__str__()
+            return str(self)
 
         @property
         def FileName(self):

@@ -14,11 +14,7 @@ import hmac
 
 from binascii import hexlify, unhexlify
 from struct import pack
-
-def s2b(s):
-    if type(s) == str:
-        return s.encode('utf-8')
-    return s
+from util import *
 
 class PBKDF2(object):
     BLOCKLEN = 20
