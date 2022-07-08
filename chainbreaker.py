@@ -1215,12 +1215,6 @@ if __name__ == "__main__":
 
     args = arguments.parse_args()
 
-    if args.password_prompt:
-        args.password = getpass.getpass('Unlock Password: ')
-
-    if args.key_prompt:
-        args.key = getpass.getpass('Unlock Key: ')
-
     # create logger
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                         level=args.loglevel,
@@ -1259,6 +1253,13 @@ if __name__ == "__main__":
             args.export_x509_certificates or args.dump_all or args.export_all or args.check_unlock):
         logger.critical("No action specified.")
         exit(1)
+
+    # Prompt after validating export actions to avoid exit from argument handling conditions.
+    if args.password_prompt:
+        args.password = getpass.getpass('Unlock Password: ')
+
+    if args.key_prompt:
+        args.key = getpass.getpass('Unlock Key: ')
 
     # Calculate the MD5 and SHA256 of the input keychain file.
     keychain_md5 = hashlib.md5(args.keychain).hexdigest()
