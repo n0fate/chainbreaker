@@ -19,26 +19,60 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
+import base64
+from binascii import hexlify, unhexlify
+from hashlib import md5, pbkdf2_hmac, sha256
+import logging
+import os
 import struct
-from schema import *
-from schema import _APPL_DB_HEADER, _APPL_DB_SCHEMA, _TABLE_HEADER, _DB_BLOB, _GENERIC_PW_HEADER, \
-    _KEY_BLOB_REC_HEADER, _KEY_BLOB, _SSGP, _INTERNET_PW_HEADER, _APPLE_SHARE_HEADER, _X509_CERT_HEADER, _SECKEY_HEADER, \
-    _UNLOCK_BLOB, _KEYCHAIN_TIME, _INT, _FOUR_CHAR_CODE, _LV, _TABLE_ID, _RECORD_OFFSET
+import sys
+import uuid
 
-from hashlib import pbkdf2_hmac
-# pip install pycryptodome for Crypto.Cipher
 from Crypto.Cipher import DES3
 
-from binascii import unhexlify, hexlify
-import logging
-import base64
-import string
-import uuid
+from chainbreaker import args_control, results
+from chainbreaker.schema import (_APPL_DB_HEADER,
+                                 _APPL_DB_SCHEMA,
+                                 _APPLE_SHARE_HEADER,
+                                 _DB_BLOB,
+                                 _FOUR_CHAR_CODE,
+                                 _GENERIC_PW_HEADER,
+                                 _INT,
+                                 _INTERNET_PW_HEADER,
+                                 _KEY_BLOB,
+                                 _KEY_BLOB_REC_HEADER,
+                                 _KEYCHAIN_TIME,
+                                 _LV,
+                                 _RECORD_OFFSET,
+                                 _SECKEY_HEADER,
+                                 _SSGP,
+                                 _TABLE_HEADER,
+                                 _TABLE_ID,
+                                 _UNLOCK_BLOB,
+                                 _X509_CERT_HEADER,
+                                 AUTH_TYPE,
+                                 CSSM_ALGORITHMS,
+                                 CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD,
+                                 CSSM_DL_DB_RECORD_GENERIC_PASSWORD,
+                                 CSSM_DL_DB_RECORD_INTERNET_PASSWORD,
+                                 CSSM_DL_DB_RECORD_METADATA,
+                                 CSSM_DL_DB_RECORD_PRIVATE_KEY,
+                                 CSSM_DL_DB_RECORD_PUBLIC_KEY,
+                                 CSSM_DL_DB_RECORD_SYMMETRIC_KEY,
+                                 CSSM_DL_DB_RECORD_X509_CERTIFICATE,
+                                 KEY_TYPE,
+                                 PROTOCOL_TYPE,
+                                 SECURE_STORAGE_GROUP,
+                                 STD_APPLE_ADDIN_MODULE,
+                                 )
+from chainbreaker.version import __version__
+
+logger = logging.getLogger(__name__)
 
 
 class Chainbreaker(object):
     ATOM_SIZE = 4
-    KEYCHAIN_SIGNATURE = "kych"
+    KEYCHAIN_SIGNATURE = b'kych'
     BLOCKSIZE = 8
     KEYLEN = 24
     MAGIC_CMS_IV = unhexlify('4adda22c79e82105')
@@ -66,16 +100,13 @@ class Chainbreaker(object):
         self.dbblob = None
         self.locked = True
 
-        self.logger = logging.getLogger('Chainbreaker')
+        self.logger = logger
 
         self.key_list = {}
 
         self.db_key = None
 
         self.filepath = filepath
-
-        if not self._is_valid_keychain():
-            self.logger.warning('Keychain signature does not match. are you sure this is a valid keychain file?')
 
         self.unlock_password = unlock_password
         self.unlock_key = unlock_key
@@ -169,6 +200,12 @@ class Chainbreaker(object):
 
             if self.kc_buffer:
                 self.header = _APPL_DB_HEADER(self.kc_buffer[:_APPL_DB_HEADER.STRUCT.size])
+                # I noticed the chainbreaker module does not parse keychain-2.db files which have an SQL header.
+                # We may need to look into that in the future.
+                if not self._is_valid_keychain():
+                    raise ValueError(f'Header signature is not {Chainbreaker.KEYCHAIN_SIGNATURE}'
+                                     f'but {self.header.Signature} for file: \n {self.filepath}')
+
                 self.schema_info, self.table_list = self._get_schema_info(self.header.SchemaOffset)
                 self.table_metadata, self.record_list = self._get_table(self.table_list[0])
                 self.table_count, self.table_enum = self._get_table_name_to_list(self.record_list, self.table_list)
@@ -209,8 +246,10 @@ class Chainbreaker(object):
 
         for i in range(schema_info.TableCount):
             base_addr = _APPL_DB_HEADER.STRUCT.size + _APPL_DB_SCHEMA.STRUCT.size
-            table_list.append(_TABLE_ID(self.kc_buffer[base_addr + (Chainbreaker.ATOM_SIZE * i):base_addr + (
-                    Chainbreaker.ATOM_SIZE * i) + Chainbreaker.ATOM_SIZE]).Value)
+            table_list.append(_TABLE_ID(self.kc_buffer[base_addr
+                                                       + (Chainbreaker.ATOM_SIZE * i):base_addr
+                                                       + (Chainbreaker.ATOM_SIZE * i)
+                                                       + Chainbreaker.ATOM_SIZE]).Value)
 
         return schema_info, table_list
 
@@ -234,9 +273,10 @@ class Chainbreaker(object):
         record_count = 0
         offset = 0
         while table_metadata.RecordCount != record_count:
-            record_offset = _RECORD_OFFSET(self.kc_buffer[
-                                           record_offset_base + (Chainbreaker.ATOM_SIZE * offset):record_offset_base + (
-                                                   Chainbreaker.ATOM_SIZE * offset) + Chainbreaker.ATOM_SIZE]).Value
+            record_offset = _RECORD_OFFSET(self.kc_buffer[record_offset_base
+                                                          + (Chainbreaker.ATOM_SIZE * offset):record_offset_base
+                                                          + (Chainbreaker.ATOM_SIZE * offset)
+                                                          + Chainbreaker.ATOM_SIZE]).Value
 
             if (record_offset != 0x00) and (record_offset % 4 == 0):
                 record_list.append(record_offset)
@@ -261,12 +301,16 @@ class Chainbreaker(object):
         key_blob_record_header = _KEY_BLOB_REC_HEADER(
             self.kc_buffer[base_addr:base_addr + _KEY_BLOB_REC_HEADER.STRUCT.size])
 
-        record = self.kc_buffer[
-                 base_addr + _KEY_BLOB_REC_HEADER.STRUCT.size:base_addr + key_blob_record_header.RecordSize]
+        record = self.kc_buffer[base_addr
+                                + _KEY_BLOB_REC_HEADER.STRUCT.size:base_addr
+                                + key_blob_record_header.RecordSize]
 
         key_blob_record = _KEY_BLOB(record[:+_KEY_BLOB.STRUCT.size])
 
-        if SECURE_STORAGE_GROUP != record[key_blob_record.TotalLength + 8:key_blob_record.TotalLength + 8 + 4].decode('utf-8'):
+        if SECURE_STORAGE_GROUP != record[key_blob_record.TotalLength
+                                          + 8:key_blob_record.TotalLength
+                                          + 8
+                                          + 4].decode('utf-8'):
             return '', '', '', 1
 
         cipher_len = key_blob_record.TotalLength - key_blob_record.StartCryptoBlob
@@ -277,8 +321,10 @@ class Chainbreaker(object):
         cipher_text = record[key_blob_record.StartCryptoBlob:key_blob_record.TotalLength]
 
         # match data, keyblob_ciphertext, Initial Vector, success
-        return record[
-               key_blob_record.TotalLength + 8:key_blob_record.TotalLength + 8 + 20], cipher_text, key_blob_record.IV, 0
+        return record[key_blob_record.TotalLength
+                      + 8:key_blob_record.TotalLength
+                      + 8
+                      + 20], cipher_text, key_blob_record.IV, 0
 
     # Get a timestamp from the keychain buffer
     def _get_keychain_time(self, base_addr, pcol):
@@ -347,8 +393,9 @@ class Chainbreaker(object):
     # ## find DBBlob and extract Wrapping key
     def _find_wrapping_key(self, master):
         # get cipher text area
-        ciphertext = self.kc_buffer[
-                     self.base_addr + self.dbblob.StartCryptoBlob:self.base_addr + self.dbblob.TotalLength]
+        ciphertext = self.kc_buffer[self.base_addr
+                                    + self.dbblob.StartCryptoBlob:self.base_addr
+                                    + self.dbblob.TotalLength]
 
         # decrypt the key
         plain = Chainbreaker._kcdecrypt(master, self.dbblob.IV, ciphertext)
@@ -364,8 +411,9 @@ class Chainbreaker(object):
     # Extract the Cyphertext, IV, and Salt for the keychain file, for use with offline cracking (e.g. Hashcat)
     # Returns a KeychainPasswordHash object
     def dump_keychain_password_hash(self):
-        cyphertext = hexlify(
-            self.kc_buffer[self.base_addr + self.dbblob.StartCryptoBlob:self.base_addr + self.dbblob.TotalLength])
+        cyphertext = hexlify(self.kc_buffer[self.base_addr
+                                            + self.dbblob.StartCryptoBlob:self.base_addr
+                                            + self.dbblob.TotalLength])
 
         iv = hexlify(self.dbblob.IV)
         salt = hexlify(self.dbblob.Salt)
@@ -399,7 +447,7 @@ class Chainbreaker(object):
             address=self._get_lv(base_addr, record_meta.Address & 0xFFFFFFFE),
             signature=self._get_lv(base_addr, record_meta.Signature & 0xFFFFFFFE),
             ssgp=ssgp,
-            dbkey=dbkey
+            dbkey=dbkey,
         )
 
     def _get_private_key_record(self, record_offset):
@@ -441,13 +489,17 @@ class Chainbreaker(object):
             public_key=record[10],
         )
 
-    def _get_key_record(self, table_name, record_offset):  ## PUBLIC and PRIVATE KEY
+    def _get_key_record(self, table_name, record_offset):
+        """PUBLIC and PRIVATE KEY """
         base_addr = self._get_base_address(table_name, record_offset)
 
-        record_meta = _SECKEY_HEADER(self.kc_buffer[base_addr:base_addr + _SECKEY_HEADER.STRUCT.size])
+        record_meta = _SECKEY_HEADER(self.kc_buffer[base_addr:base_addr
+                                                    + _SECKEY_HEADER.STRUCT.size])
 
-        key_blob = self.kc_buffer[
-                   base_addr + _SECKEY_HEADER.STRUCT.size:base_addr + _SECKEY_HEADER.STRUCT.size + record_meta.BlobSize]
+        key_blob = self.kc_buffer[base_addr
+                                  + _SECKEY_HEADER.STRUCT.size:base_addr
+                                  + _SECKEY_HEADER.STRUCT.size
+                                  + record_meta.BlobSize]
 
         iv, key = Chainbreaker._get_encrypted_data_in_blob(key_blob)
 
@@ -479,8 +531,10 @@ class Chainbreaker(object):
             serial_number=self._get_lv(base_addr, record_meta.SerialNumber & 0xFFFFFFFE),
             subject_key_identifier=self._get_lv(base_addr, record_meta.SubjectKeyIdentifier & 0xFFFFFFFE),
             public_key_hash=self._get_lv(base_addr, record_meta.PublicKeyHash & 0xFFFFFFFE),
-            certificate=self.kc_buffer[
-                        base_addr + _X509_CERT_HEADER.STRUCT.size:base_addr + _X509_CERT_HEADER.STRUCT.size + record_meta.CertSize]
+            certificate=self.kc_buffer[base_addr
+                                       + _X509_CERT_HEADER.STRUCT.size:base_addr
+                                       + _X509_CERT_HEADER.STRUCT.size
+                                       + record_meta.CertSize],
         )
 
     def _extract_ssgp_and_dbkey(self, record_meta, buffer):
@@ -522,16 +576,18 @@ class Chainbreaker(object):
             port=self._get_int(base_addr, record_meta.Port & 0xFFFFFFFE),
             path=self._get_lv(base_addr, record_meta.Path & 0xFFFFFFFE),
             ssgp=ssgp,
-            dbkey=dbkey
+            dbkey=dbkey,
         )
 
     def _get_generic_password_record(self, record_offset):
         base_addr = self._get_base_address(CSSM_DL_DB_RECORD_GENERIC_PASSWORD, record_offset)
 
-        record_meta = _GENERIC_PW_HEADER(self.kc_buffer[base_addr:base_addr + _GENERIC_PW_HEADER.STRUCT.size])
+        record_meta = _GENERIC_PW_HEADER(self.kc_buffer[base_addr:base_addr
+                                                        + _GENERIC_PW_HEADER.STRUCT.size])
 
-        buffer = self.kc_buffer[
-                 base_addr + _GENERIC_PW_HEADER.STRUCT.size:base_addr + record_meta.RecordSize]
+        buffer = self.kc_buffer[base_addr
+                                + _GENERIC_PW_HEADER.STRUCT.size:base_addr
+                                + record_meta.RecordSize]
 
         ssgp, dbkey = self._extract_ssgp_and_dbkey(record_meta, buffer)
 
@@ -624,13 +680,12 @@ class Chainbreaker(object):
     # SOURCE : extractkeychain.py
     @staticmethod
     def _kcdecrypt(key, iv, data):
-        logger = logging.getLogger('Chainbreaker')
         if len(data) == 0:
             logger.debug("Encrypted data is 0.")
-            return ''
+            return b''
 
         if len(data) % Chainbreaker.BLOCKSIZE != 0:
-            return ''
+            return b''
 
         cipher = DES3.new(key, DES3.MODE_CBC, iv=bytearray(iv))
 
@@ -640,12 +695,12 @@ class Chainbreaker(object):
         pad = plain[-1]
         if pad > 8:
             logger.debug("Bad padding byte. Keychain password might be incorrect.")
-            return ''
+            return b''
 
         for z in plain[-pad:]:
             if z != pad:
                 logger.debug("Bad padding byte. Keychain password might be incorrect.")
-                return ''
+                return b''
 
         plain = plain[:-pad]
 
@@ -662,17 +717,21 @@ class Chainbreaker(object):
         return key_blob.IV, key_data  # IV, Encrypted Data
 
     # ## decrypted dbblob area
-    # ## Documents : http://www.opensource.apple.com/source/securityd/securityd-55137.1/doc/BLOBFORMAT
-    # ## http://www.opensource.apple.com/source/libsecurity_keychain/libsecurity_keychain-36620/lib/StorageManager.cpp
+    # ## Documents: http://www.opensource.apple.com/source/
+    # ##                securityd/securityd-55137.1/doc/BLOBFORMAT
+    # ##            http://www.opensource.apple.com/source/
+    # ##                libsecurity_keychain/libsecurity_keychain-36620/lib/StorageManager.cpp
     # def _ssgp_decryption(self, ssgp, dbkey):
     #     return Chainbreaker._kcdecrypt(dbkey, _SSGP(ssgp).IV, ssgp[_SSGP.STRUCT.size:])
 
-    # Documents : http://www.opensource.apple.com/source/securityd/securityd-55137.1/doc/BLOBFORMAT
-    # source : http://www.opensource.apple.com/source/libsecurity_cdsa_client/libsecurity_cdsa_client-36213/lib/securestorage.cpp
-    # magicCmsIV : http://www.opensource.apple.com/source/Security/Security-28/AppleCSP/AppleCSP/wrapKeyCms.cpp
+    # Documents:    http://www.opensource.apple.com/source/
+    #                   securityd/securityd-55137.1/doc/BLOBFORMAT
+    # source:       http://www.opensource.apple.com/source/
+    #                   libsecurity_cdsa_client/libsecurity_cdsa_client-36213/lib/securestorage.cpp
+    # magicCmsIV:   http://www.opensource.apple.com/source/
+    #                   Security/Security-28/AppleCSP/AppleCSP/wrapKeyCms.cpp
     @staticmethod
     def keyblob_decryption(encryptedblob, iv, dbkey):
-        logger = logging.getLogger('Chainbreaker')
 
         # magicCmsIV = unhexlify('4adda22c79e82105')
         plain = Chainbreaker._kcdecrypt(dbkey, Chainbreaker.MAGIC_CMS_IV, encryptedblob)
@@ -696,7 +755,7 @@ class Chainbreaker(object):
 
     class KeychainRecord(object):
         def __init__(self):
-            self.logger = logging.getLogger('Chainbreaker')
+            self.logger = logger
 
         def write_to_disk(self, output_directory):
             # self.exportable contains the content we should write to disk. If it isn't implemented we can't
@@ -716,10 +775,10 @@ class Chainbreaker(object):
 
             # Generate our filepath, making sure the file doesn't already exist. If it does,
             # add a number, e.g. PrivateKey.1.key
-            file_name = self.FileName + self.FileExt
+            file_name = self.file_name + self.file_ext
             iteration = 1
             while os.path.exists(os.path.join(output_directory, file_name)):
-                file_name = "%s.%s%s" % (self.FileName, iteration, self.FileExt)
+                file_name = "%s.%s%s" % (self.file_name, iteration, self.file_ext)
                 iteration += 1
 
             file_path = os.path.join(output_directory, file_name)
@@ -728,17 +787,20 @@ class Chainbreaker(object):
             try:
                 with open(file_path, 'wb') as fp:
                     self.logger.info('\t [-] Exported: %s' % file_path)
-                    fp.write(export_content.encode('utf-8'))
+                    if type(export_content) is bytes:
+                        fp.write(export_content)
+                    else:
+                        fp.write(export_content.encode('utf-8'))
                     return True
             except OSError as e:
                 self.logger.critical('Exception while attempting to export %s: %s' % (file_path, e))
 
         @property
-        def FileName(self):
+        def file_name(self):
             return str(uuid.uuid4())
 
         @property
-        def FileExt(self):
+        def file_ext(self):
             return '.txt'
 
     class KeychainPasswordHash(KeychainRecord):
@@ -760,7 +822,7 @@ class Chainbreaker(object):
             return self.__str__()
 
         @property
-        def FileName(self):
+        def file_name(self):
             return "keychain_password_hash"
 
     class PublicKeyRecord(KeychainRecord):
@@ -800,11 +862,11 @@ class Chainbreaker(object):
             return self.PublicKey
 
         @property
-        def FileName(self):
+        def file_name(self):
             return "".join(x for x in self.PrintName if x.isalnum())
 
         @property
-        def FileExt(self):
+        def file_ext(self):
             return '.pub'
 
     class PrivateKeyRecord(KeychainRecord):
@@ -853,11 +915,11 @@ class Chainbreaker(object):
             return self.PrivateKey
 
         @property
-        def FileName(self):
+        def file_name(self):
             return "".join(x for x in self.PrintName if x.isalnum())
 
         @property
-        def FileExt(self):
+        def file_ext(self):
             return '.key'
 
     class X509CertificateRecord(KeychainRecord):
@@ -895,11 +957,11 @@ class Chainbreaker(object):
             return self.Certificate
 
         @property
-        def FileName(self):
-            return "".join(x for x in self.PrintName if x.isalnum())
+        def file_name(self):
+            return "".join(str(x) for x in self.PrintName if type(x) is int)
 
         @property
-        def FileExt(self):
+        def file_ext(self):
             return '.crt'
 
     class SSGBEncryptedRecord(KeychainRecord):
@@ -927,14 +989,14 @@ class Chainbreaker(object):
             return self._password
 
         def get_password_output_str(self):
-            password = self.Password
+            password = self.password
             if self.password_b64_encoded:
                 return ' [-] Base64 Encoded Password: {}\n'.format(password)
             else:
                 return ' [-] Password: {}\n'.format(password)
 
         @property
-        def Password(self):
+        def password(self):
             if not self._password:
                 self.decrypt_password()
                 if self.locked:
@@ -947,11 +1009,11 @@ class Chainbreaker(object):
             return self.__str__()
 
         @property
-        def FileName(self):
-            return "".join(x for x in self.PrintName if x.isalnum())
+        def file_name(self):
+            return "".join(str(x) for x in self.PrintName if type(x) is int)
 
         @property
-        def FileExt(self):
+        def file_ext(self):
             return '.txt'
 
     class GenericPasswordRecord(SSGBEncryptedRecord):
@@ -1095,298 +1157,46 @@ class Chainbreaker(object):
             return output
 
 
-if __name__ == "__main__":
-    import argparse
-    import getpass
-    import sys
-    import os
-    import datetime
-    import hashlib
+def check_input_args(args):
+    # Check various input arguments
+    args = args_control.args_prompt_input(args)
+    args.output = args_control.set_output_dir(args)
+    args = args_control.set_all_options_true(args)
 
-    arguments = argparse.ArgumentParser(description='Dump items stored in an OSX Keychain')
+    # Make sure we're actually doing something, exit if we're not.
+    args_control.check_args_no_action(args)
+    return args
 
-    # General Arguments
-    arguments.add_argument('keychain', help='Location of the keychain file to parse')
 
-    # Available actions
-    dump_actions = arguments.add_argument_group('Dump Actions')
-    dump_actions.add_argument('--dump-all', '-a', help='Dump records to the console window.',
-                              action='store_const', dest='dump_all', const=True)
-    dump_actions.add_argument('--dump-keychain-password-hash',
-                              help='Dump the keychain password hash in a format suitable for hashcat or John The Ripper',
-                              action='store_const', dest='dump_keychain_password_hash', const=True)
-    dump_actions.add_argument('--dump-generic-passwords', help='Dump all generic passwords',
-                              action='store_const', dest='dump_generic_passwords', const=True)
-    dump_actions.add_argument('--dump-internet-passwords', help='Dump all internet passwords',
-                              action='store_const', dest='dump_internet_passwords', const=True)
-    dump_actions.add_argument('--dump-appleshare-passwords', help='Dump all appleshare passwords',
-                              action='store_const', dest='dump_appleshare_passwords', const=True)
-    dump_actions.add_argument('--dump-private-keys', help='Dump all private keys',
-                              action='store_const', dest='dump_private_keys', const=True)
-    dump_actions.add_argument('--dump-public-keys', help='Dump all public keys',
-                              action='store_const', dest='dump_public_keys', const=True)
-    dump_actions.add_argument('--dump-x509-certificates', help='Dump all X509 certificates',
-                              action='store_const', dest='dump_x509_certificates', const=True)
+def main():
+    # Setup the argument parser
+    args = args_control.setup_argsparse()
 
-    # Export private keys, public keys, or x509 certificates to disk.
-    export_actions = arguments.add_argument_group('Export Actions',
-                                                  description='Export records to files. Save location '
-                                                              'is CWD, but can be overridden with --output / -o')
+    args = check_input_args(args)
 
-    export_actions.add_argument('--export-keychain-password-hash', help='Save the keychain password hash to disk',
-                                action='store_const', dest='export_keychain_password_hash', const=True)
-    export_actions.add_argument('--export-generic-passwords', help='Save all generic passwords to disk',
-                                action='store_const', dest='export_generic_passwords', const=True)
-    export_actions.add_argument('--export-internet-passwords', help='Save all internet passwords to disk',
-                                action='store_const', dest='export_internet_passwords', const=True)
-    export_actions.add_argument('--export-appleshare-passwords', help='Save all appleshare passwords to disk',
-                                action='store_const', dest='export_appleshare_passwords', const=True)
-    export_actions.add_argument('--export-private-keys', help='Save private keys to disk',
-                                action='store_const', dest='export_private_keys', const=True)
-    export_actions.add_argument('--export-public-keys', help='Save public keys to disk',
-                                action='store_const', dest='export_public_keys', const=True)
-    export_actions.add_argument('--export-x509-certificates', help='Save X509 certificates to disk',
-                                action='store_const', dest='export_x509_certificates', const=True)
-    export_actions.add_argument('--export-all', '-e',
-                                help='Save records to disk',
-                                action='store_const', dest='export_all', const=True)
-
-    misc_actions = arguments.add_argument_group('Misc. Actions')
-
-    misc_actions.add_argument('--check-unlock-options', '-c',
-                              help='Only check to see if the provided unlock options work.'
-                                   ' Exits 0 on success, 1 on failure.',
-                              action='store_const', dest='check_unlock', const=True)
-
-    # Keychain Unlocking Arguments
-    unlock_args = arguments.add_argument_group('Unlock Options')
-    unlock_args.add_argument('--password-prompt', '-p', help='Prompt for a password to use in unlocking the keychain',
-                             action='store_const', dest='password_prompt', const=True)
-    unlock_args.add_argument('--password', help='Unlock the keychain with a password, provided on the terminal.'
-                                                'Caution: This is insecure and you should likely use'
-                                                '--password-prompt instead')
-    unlock_args.add_argument('--key-prompt', '-k', help='Prompt for a key to use in unlocking the keychain',
-                             action='store_const', dest='key_prompt', const=True)
-    unlock_args.add_argument('--key', help='Unlock the keychain with a key, provided via argument.'
-                                           'Caution: This is insecure and you should likely use --key-prompt instead')
-    unlock_args.add_argument('--unlock-file', help='Unlock the keychain with a key file')
-
-    # Output arguments
-    output_args = arguments.add_argument_group('Output Options')
-    output_args.add_argument('--output', '-o', help='Directory to output exported records to.')
-    output_args.add_argument('-d', '--debug', help="Print debug information", action="store_const", dest="loglevel",
-                             const=logging.DEBUG)
-
-    arguments.set_defaults(
-        loglevel=logging.INFO,
-        dump_all=False,
-        dump_keychain_password_hash=False,
-        dump_generic_passwords=False,
-        dump_internet_passwords=False,
-        dump_appleshare_passwords=False,
-        dump_private_keys=False,
-        dump_public_keys=False,
-        dump_x509_certificates=False,
-        export_keychain_password_hash=False,
-        export_generic_passwords=False,
-        export_internet_passwords=False,
-        export_appleshare_passwords=False,
-        export_private_keys=False,
-        export_public_keys=False,
-        export_x509_certificates=False,
-        export_all=False,
-        check_unlock=False,
-        password_prompt=False,
-        key_prompt=False,
-        password=None,
-        key=None,
-        unlock_file=None,
-    )
-
-    args = arguments.parse_args()
-
-    if args.password_prompt:
-        args.password = getpass.getpass('Unlock Password: ')
-
-    if args.key_prompt:
-        args.key = getpass.getpass('Unlock Key: ')
-
-    # create logger
+    # Setup logging
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                         level=args.loglevel,
                         stream=sys.stdout)
-
-    logger = logging.getLogger('Chainbreaker')
-
-    if args.output:
-        if not os.path.exists(args.output):
-            try:
-                os.makedirs(args.output)
-            except OSError as e:
-                logger.critical("Unable to create output directory: %s" % args.output)
-                exit(1)
-        logger.addHandler(logging.FileHandler(os.path.join(args.output, 'output.log'), mode='w'))
-    else:
-        args.output = os.getcwd()
-
-    # If dump-all or export-all is set, set the individual args
-    if args.dump_all:
-        args.dump_keychain_password_hash = args.dump_generic_passwords = args.dump_internet_passwords = \
-            args.dump_appleshare_passwords = args.dump_public_keys = args.dump_private_keys = \
-            args.dump_x509_certificates = True
-
-    if args.export_all:
-        args.export_keychain_password_hash = args.export_generic_passwords = args.export_internet_passwords = \
-            args.export_appleshare_passwords = args.export_public_keys = args.export_private_keys = \
-            args.export_x509_certificates = True
-
-    # Make sure we're actually doing something, exit if we're not.
-    if not (args.dump_keychain_password_hash or args.dump_generic_passwords or args.dump_internet_passwords \
-            or args.dump_appleshare_passwords or args.dump_public_keys or args.dump_private_keys or \
-            args.dump_x509_certificates or args.export_keychain_password_hash or \
-            args.export_generic_passwords or args.export_internet_passwords \
-            or args.export_appleshare_passwords or args.export_private_keys or args.export_public_keys or \
-            args.export_x509_certificates or args.dump_all or args.export_all or args.check_unlock):
-        logger.critical("No action specified.")
-        exit(1)
+    logging.info(f'Version - {__version__}')
 
     # Calculate the MD5 and SHA256 of the input keychain file.
-    keychain_md5 = hashlib.md5(args.keychain.encode('utf-8')).hexdigest()
-    keychain_sha256 = hashlib.sha256(args.keychain.encode('utf-8')).hexdigest()
+    keychain_md5 = md5(args.keychain.encode('utf-8')).hexdigest()
+    keychain_sha256 = sha256(args.keychain.encode('utf-8')).hexdigest()
 
     # Print out some summary info before we actually start doing any work.
-    summary_output = [
-        "Python3 Compatible version! \n Forked from https://github.com/n0fate/chainbreaker , thanks to https://github.com/gaddie-3/chainbreaker",
-        "Runtime Command: %s" % ' '.join(sys.argv),
-        "Keychain: %s" % args.keychain,
-        "Keychain MD5: %s" % keychain_md5,
-        "Keychain 256: %s" % keychain_sha256,
-        "Dump Start: %s" % datetime.datetime.now(),
-    ]
-
-    for line in summary_output:
-        logger.info(line)
-
-    summary_output.append("Dump Summary:")
+    summary_output = results.summary(args, keychain_md5, keychain_sha256)
 
     # Done parsing our input options, now actually do the work.
     keychain = Chainbreaker(args.keychain, unlock_password=args.password, unlock_key=args.key,
                             unlock_file=args.unlock_file)
 
-    if args.check_unlock:
-        if keychain.locked:
-            logger.info("Invalid Unlock Options")
-            exit(1)
-        else:
-            logger.info("Keychain Unlock Successful.")
-            exit(0)
+    args_control.args_unlock_option(args, keychain)
 
-    output = []
+    # Format the collected keychain information for logging
+    output = results.resolve(args, keychain)
 
-    if args.dump_keychain_password_hash or args.export_keychain_password_hash:
-        output.append(
-            {
-                'header': 'Keychain Password Hash',
-                'records': [keychain.dump_keychain_password_hash()],  # A little hackish, but whatever.
-                'write_to_console': args.dump_keychain_password_hash,
-                'write_to_disk': args.export_keychain_password_hash,
-                'write_directory': os.path.join(args.output)
-            }
-        )
+    # Print all record information
+    results.log_output(output, summary_output, args)
 
-    if args.dump_generic_passwords or args.export_generic_passwords:
-        output.append(
-            {
-                'header': 'Generic Passwords',
-                'records': keychain.dump_generic_passwords(),
-                'write_to_console': args.dump_generic_passwords,
-                'write_to_disk': args.export_generic_passwords,
-                'write_directory': os.path.join(args.output, 'passwords', 'generic')
-            }
-        )
-    if args.dump_internet_passwords or args.export_internet_passwords:
-        output.append(
-            {
-                'header': 'Internet Passwords',
-                'records': keychain.dump_internet_passwords(),
-                'write_to_console': args.dump_internet_passwords,
-                'write_to_disk': args.export_internet_passwords,
-                'write_directory': os.path.join(args.output, 'passwords', 'internet')
-            }
-        )
-    if args.dump_appleshare_passwords or args.export_appleshare_passwords:
-        output.append(
-            {
-                'header': 'Appleshare Passwords',
-                'records': keychain.dump_appleshare_passwords(),
-                'write_to_console': args.dump_appleshare_passwords,
-                'write_to_disk': args.export_appleshare_passwords,
-                'write_directory': os.path.join(args.output, 'passwords', 'appleshare')
-            }
-        )
-    if args.dump_private_keys or args.export_private_keys:
-        output.append(
-            {
-                'header': 'Private Keys',
-                'records': keychain.dump_private_keys(),
-                'write_to_console': args.dump_private_keys,
-                'write_to_disk': args.export_private_keys,
-                'write_directory': os.path.join(args.output, 'keys', 'private')
-            }
-        )
-    if args.dump_public_keys or args.export_public_keys:
-        output.append(
-            {
-                'header': 'Public Keys',
-                'records': keychain.dump_public_keys(),
-                'write_to_console': args.dump_public_keys,
-                'write_to_disk': args.export_public_keys,
-                'write_directory': os.path.join(args.output, 'keys', 'public')
-            }
-        )
-    if args.dump_x509_certificates or args.export_x509_certificates:
-        output.append(
-            {
-                'header': 'x509 Certificates',
-                'records': keychain.dump_x509_certificates(),
-                'write_to_console': args.dump_x509_certificates,
-                'write_to_disk': args.export_x509_certificates,
-                'write_directory': os.path.join(args.output, 'certificates')
-            }
-        )
-
-    try:
-        for record_collection in output:
-            if 'records' in record_collection:
-                number_records = len(record_collection['records'])
-                collection_summary = "%s %s" % (len(record_collection['records']), record_collection['header'])
-                logger.info(collection_summary)
-
-                summary_output.append("\t%s" % collection_summary)
-
-                for record in record_collection['records']:
-                    if record_collection.get('write_to_console', False):
-                        for line in str(record).split('\n'):
-                            logger.info("\t%s" % line)
-                    if record_collection.get('write_to_disk', False):
-                        record.write_to_disk(record_collection.get('write_directory', args.output))
-                    logger.info("")
-
-        summary_output.append("Dump End: %s" % datetime.datetime.now())
-
-        if any(x.get('write_to_disk', False) for x in output):
-            with open(os.path.join(args.output, "summary.txt"), 'w') as summary_fp:
-                for line in summary_output:
-                    summary_fp.write("%s\n" % line)
-                    logger.info(line)
-        else:
-            for line in summary_output:
-                logger.info(line)
-
-    except KeyboardInterrupt:
-        exit(0)
-
-    exit(0)
-
-# Some great reading on the Keychain Format can be found here:
-# https://repo.zenk-security.com/Forensic/Keychain%20Analysis%20with%20Mac%20OS%20X%20Memory%20Forensics.pdf
+    exit(-1)
