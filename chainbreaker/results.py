@@ -1,14 +1,19 @@
-from logging_config import LOGGER as logger
 import datetime
-import sys
+import logging
 import os
+import sys
+
+import chainbreaker
+
+logger = logging.getLogger(__name__)
 
 
 def summary(args, keychain_md5, keychain_sha256):
     # Collect summary of information
     summary_output = [
-        "Python3 Compatible version! \n Forked from https://github.com/n0fate/chainbreaker , "
-        "thanks to https://github.com/gaddie-3/chainbreaker \n",
+        "Credits: Forked from https://github.com/n0fate/chainbreaker",
+        "Credits: Thanks to https://github.com/gaddie-3/chainbreaker",
+        "Version: %s" % chainbreaker.__version__,
         "Runtime Command: %s" % ' '.join(sys.argv),
         "Keychain: %s" % args.keychain,
         "Keychain MD5: %s" % keychain_md5,
@@ -32,9 +37,8 @@ def resolve(args, keychain):
                 'records': [keychain.dump_keychain_password_hash()],  # A little hackish, but whatever.
                 'write_to_console': args.dump_keychain_password_hash,
                 'write_to_disk': args.export_keychain_password_hash,
-                'write_directory': os.path.join(args.output)
-            }
-        )
+                'write_directory': os.path.join(args.output),
+            })
 
     if args.dump_generic_passwords or args.export_generic_passwords:
         output.append(
@@ -43,9 +47,8 @@ def resolve(args, keychain):
                 'records': keychain.dump_generic_passwords(),
                 'write_to_console': args.dump_generic_passwords,
                 'write_to_disk': args.export_generic_passwords,
-                'write_directory': os.path.join(args.output, 'passwords', 'generic')
-            }
-        )
+                'write_directory': os.path.join(args.output, 'passwords', 'generic'),
+            })
     if args.dump_internet_passwords or args.export_internet_passwords:
         output.append(
             {
@@ -53,9 +56,8 @@ def resolve(args, keychain):
                 'records': keychain.dump_internet_passwords(),
                 'write_to_console': args.dump_internet_passwords,
                 'write_to_disk': args.export_internet_passwords,
-                'write_directory': os.path.join(args.output, 'passwords', 'internet')
-            }
-        )
+                'write_directory': os.path.join(args.output, 'passwords', 'internet'),
+            })
     if args.dump_appleshare_passwords or args.export_appleshare_passwords:
         output.append(
             {
@@ -63,9 +65,8 @@ def resolve(args, keychain):
                 'records': keychain.dump_appleshare_passwords(),
                 'write_to_console': args.dump_appleshare_passwords,
                 'write_to_disk': args.export_appleshare_passwords,
-                'write_directory': os.path.join(args.output, 'passwords', 'appleshare')
-            }
-        )
+                'write_directory': os.path.join(args.output, 'passwords', 'appleshare'),
+            })
     if args.dump_private_keys or args.export_private_keys:
         output.append(
             {
@@ -73,9 +74,8 @@ def resolve(args, keychain):
                 'records': keychain.dump_private_keys(),
                 'write_to_console': args.dump_private_keys,
                 'write_to_disk': args.export_private_keys,
-                'write_directory': os.path.join(args.output, 'keys', 'private')
-            }
-        )
+                'write_directory': os.path.join(args.output, 'keys', 'private'),
+            })
     if args.dump_public_keys or args.export_public_keys:
         output.append(
             {
@@ -83,9 +83,8 @@ def resolve(args, keychain):
                 'records': keychain.dump_public_keys(),
                 'write_to_console': args.dump_public_keys,
                 'write_to_disk': args.export_public_keys,
-                'write_directory': os.path.join(args.output, 'keys', 'public')
-            }
-        )
+                'write_directory': os.path.join(args.output, 'keys', 'public'),
+            })
     if args.dump_x509_certificates or args.export_x509_certificates:
         output.append(
             {
@@ -93,9 +92,8 @@ def resolve(args, keychain):
                 'records': keychain.dump_x509_certificates(),
                 'write_to_console': args.dump_x509_certificates,
                 'write_to_disk': args.export_x509_certificates,
-                'write_directory': os.path.join(args.output, 'certificates')
-            }
-        )
+                'write_directory': os.path.join(args.output, 'certificates'),
+            })
     return output
 
 
@@ -104,7 +102,6 @@ def log_output(output, summary_output, args):
     try:
         for record_collection in output:
             if 'records' in record_collection:
-                number_records = len(record_collection['records'])
                 collection_summary = "%s %s" % (len(record_collection['records']), record_collection['header'])
                 logger.info(collection_summary)
 
