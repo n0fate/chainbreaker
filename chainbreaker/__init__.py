@@ -184,13 +184,8 @@ class Chainbreaker(object):
         try:
             table_meta, private_key_list = self._get_table_from_type(CSSM_DL_DB_RECORD_PRIVATE_KEY)
             for i, private_key_offset in enumerate(private_key_list, 1):
-              try:
-                print "private_key_offset", self._get_private_key_record(private_key_offset)
                 entries.append(
                     self._get_private_key_record(private_key_offset))
-
-              except Exception as e:
-                self.logger.warning(e)
         except KeyError:
             self.logger.warning('[!] Private Key Table is not available')
         return entries
