@@ -863,7 +863,7 @@ class Chainbreaker(object):
 
         @property
         def file_name(self):
-            return "".join(x for x in self.PrintName if x.isalnum())
+            return "PublicKey"
 
         @property
         def file_ext(self):
@@ -916,7 +916,7 @@ class Chainbreaker(object):
 
         @property
         def file_name(self):
-            return "".join(x for x in self.PrintName if x.isalnum())
+            return "PrivateKey"
 
         @property
         def file_ext(self):
@@ -1160,7 +1160,7 @@ class Chainbreaker(object):
 def check_input_args(args):
     # Check various input arguments
     args = args_control.args_prompt_input(args)
-    args.output = args_control.set_output_dir(args)
+    args.output = args_control.set_output_dir(args, logger)
     args = args_control.set_all_options_true(args)
 
     # Make sure we're actually doing something, exit if we're not.
@@ -1181,8 +1181,15 @@ def main():
     logging.info(f'Version - {__version__}')
 
     # Calculate the MD5 and SHA256 of the input keychain file.
-    keychain_md5 = md5(args.keychain.encode('utf-8')).hexdigest()
-    keychain_sha256 = sha256(args.keychain.encode('utf-8')).hexdigest()
+    try:
+        tmp = open(args.keychain, 'rb')
+        buf = tmp.read()
+        tmp.close()
+    except:
+        logging.critical(f'Failed to open the keychain file')
+        exit(1)
+    keychain_md5 = md5(buf).hexdigest()
+    keychain_sha256 = sha256(buf).hexdigest()
 
     # Print out some summary info before we actually start doing any work.
     summary_output = results.summary(args, keychain_md5, keychain_sha256)

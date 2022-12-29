@@ -110,12 +110,12 @@ def setup_argsparse():
     return arguments.parse_args()
 
 
-def set_output_dir(args):
+def set_output_dir(args, log):
+    logger = log
     if args.output:
         if not os.path.exists(args.output):
             try:
                 os.makedirs(args.output)
-                return args.output
             except OSError:
                 logger.critical("Unable to create output directory: %s" % args.output)
                 exit(1)
