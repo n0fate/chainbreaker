@@ -1,5 +1,6 @@
-Chainbreaker2
+Chainbreaker2 - python 3
 ============
+An updated version of the Chainbreaker2 repository, by making chainbreaker2 compatible for python 3.
 
 Chainbreaker can be used to extract the following types of information from an OSX keychain in a forensically sound manner: 
 
@@ -18,9 +19,34 @@ Given the keychain unlock password, a master key obtained using [volafox](https:
 also provide plaintext passwords.
 
 Without one of these methods of unlocking the Keychain, Chainbreaker will display all other available information.
+## Install and run
+You can either just run the code from source, or import it as a module and run as a module.
+To run the code from source, just clone/download the sourcecode, make sure you have installed the dependencies and run ``chainbreaker.py`` as a script.
+
+### Build the module
+1) Navigate to the directory containing the file `setup.py`
+2) Enter the command (from terminal): `$ python setup.py bdist_wheel -d dist`.
+This creates a wheel file (extension: `.whl`) in the `/dist` folder.
+3) Install the wheelfile with pip, or (if in the same directory containing `setup.py`) run: `$ pip install -e .`
+
+### Running chainbreaker as a module
+After succesfully installing the wheelfile, you can use the module from the command-line (allowing you to use input arguments) as follows:
+
+```$ python -m chainbreaker```
+
+Or you can import it nicely within other scripts like so:
+
+```python
+import chainbreaker 
+keychain = chainbreaker.Chainbreaker('path/to/keychain/file/login.keychain', unlock_password='SecretPasswordHere')
+```
+
+And this returns a keychain object which you can use in your script.
+
+
 
 ## Supported OS's
-Snow Leopard, Lion, Mountain Lion, Mavericks, Yosemite, El Capitan, (High) Sierra, Mojave, Catalina
+OS X Snow Leopard(10.6) to macOS Ventura(13) 
 
 ## Target Keychain file
 Any valid .keychain or .keychain-db can be supplied. Common Keychain locations include: 

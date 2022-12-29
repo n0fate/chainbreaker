@@ -1,5 +1,5 @@
-from struct import Struct
 from datetime import datetime
+from struct import Struct
 
 # http://web.mit.edu/darwin/src/modules/Security/cdsa/cdsa/cssmtype.h
 KEY_TYPE = {
@@ -7,7 +7,7 @@ KEY_TYPE = {
     0x01 + 0x0F: 'CSSM_KEYCLASS_PRIVATE_KEY',
     0x02 + 0x0F: 'CSSM_KEYCLASS_SESSION_KEY',
     0x03 + 0x0F: 'CSSM_KEYCLASS_SECRET_PART',
-    0xFFFFFFFF: 'CSSM_KEYCLASS_OTHER'
+    0xFFFFFFFF: 'CSSM_KEYCLASS_OTHER',
 }
 
 CSSM_ALGORITHMS = {
@@ -116,13 +116,17 @@ CSSM_ALGORITHMS = {
     102: 'CSSM_ALGID_MD5HMAC',
     103: 'CSSM_ALGID_PKCS5_PBKDF2',
     104: 'CSSM_ALGID_RUNNING_COUNTER',
-    0x7FFFFFFF: 'CSSM_ALGID_LAST'
+    0x7FFFFFFF: 'CSSM_ALGID_LAST',
 }
 
-# CSSM TYPE
-## http://www.opensource.apple.com/source/libsecurity_cssm/libsecurity_cssm-36064/lib/cssmtype.h
+# ########## #
+# CSSM TYPE  #
+# http://www.opensource.apple.com/source/libsecurity_cssm/libsecurity_cssm-36064/lib/cssmtype.h
+# ########## #
 
-########## CSSM_DB_RECORDTYPE #############
+# #################### #
+#  CSSM_DB_RECORDTYPE  #
+# #################### #
 
 # /* Industry At Large Application Name Space Range Definition */
 # /* AppleFileDL record types. */
@@ -136,7 +140,7 @@ CSSM_DL_DB_RECORD_UNLOCK_REFERRAL = CSSM_DB_RECORDTYPE_APP_DEFINED_START + 5
 CSSM_DL_DB_RECORD_EXTENDED_ATTRIBUTE = CSSM_DB_RECORDTYPE_APP_DEFINED_START + 6
 
 CSSM_DL_DB_RECORD_X509_CERTIFICATE = CSSM_DB_RECORDTYPE_APP_DEFINED_START + 0x1000
-CSSM_DL_DB_RECORD_METADATA = CSSM_DB_RECORDTYPE_APP_DEFINED_START + 0x8000  ## DBBlob
+CSSM_DL_DB_RECORD_METADATA = CSSM_DB_RECORDTYPE_APP_DEFINED_START + 0x8000  # DBBlob
 CSSM_DB_RECORDTYPE_APP_DEFINED_END = 0xffffffff
 
 # /* Record Types defined in the Schema Management Name Space */
@@ -160,9 +164,10 @@ CSSM_DL_DB_RECORD_PRIVATE_KEY = CSSM_DB_RECORDTYPE_OPEN_GROUP_START + 6
 CSSM_DL_DB_RECORD_SYMMETRIC_KEY = CSSM_DB_RECORDTYPE_OPEN_GROUP_START + 7
 CSSM_DL_DB_RECORD_ALL_KEYS = CSSM_DB_RECORDTYPE_OPEN_GROUP_START + 8
 CSSM_DB_RECORDTYPE_OPEN_GROUP_END = CSSM_DB_RECORDTYPE_OPEN_GROUP_START + 8
-#####################
 
-######## KEYUSE #########
+# ######## #
+#  KEYUSE  #
+# ######## #
 CSSM_KEYUSE_ANY = 0x80000000
 CSSM_KEYUSE_ENCRYPT = 0x00000001
 CSSM_KEYUSE_DECRYPT = 0x00000002
@@ -173,9 +178,10 @@ CSSM_KEYUSE_VERIFY_RECOVER = 0x00000020
 CSSM_KEYUSE_WRAP = 0x00000040
 CSSM_KEYUSE_UNWRAP = 0x00000080
 CSSM_KEYUSE_DERIVE = 0x00000100
-####################
 
-############ CERT TYPE ##############
+# ########### #
+#  CERT TYPE  #
+# ########### #
 CERT_TYPE = {
     0x00: 'CSSM_CERT_UNKNOWN',
     0x01: 'CSSM_CERT_X_509v1',
@@ -190,11 +196,11 @@ CERT_TYPE = {
     0x0C: 'CSSM_CERT_ACL_ENTRY',
     0x7FFE: 'CSSM_CERT_MULTIPLE',
     0x7FFF: 'CSSM_CERT_LAST',
-    0x8000: 'CSSM_CL_CUSTOM_CERT_TYPE'
+    0x8000: 'CSSM_CL_CUSTOM_CERT_TYPE',
 }
-####################################
-
-########### CERT ENCODING #############
+# ############### #
+#  CERT ENCODING  #
+# ############### #
 CERT_ENCODING = {
     0x00: 'CSSM_CERT_ENCODING_UNKNOWN',
     0x01: 'CSSM_CERT_ENCODING_CUSTOM',
@@ -204,7 +210,7 @@ CERT_ENCODING = {
     0x05: 'CSSM_CERT_ENCODING_SEXPR',
     0x06: 'CSSM_CERT_ENCODING_PGP',
     0x7FFE: 'CSSM_CERT_ENCODING_MULTIPLE',
-    0x7FFF: 'CSSM_CERT_ENCODING_LAST'
+    0x7FFF: 'CSSM_CERT_ENCODING_LAST',
 }
 
 STD_APPLE_ADDIN_MODULE = {
@@ -217,7 +223,7 @@ STD_APPLE_ADDIN_MODULE = {
     '{87191ca6-0fc9-11d4-849a-000502b52122}': 'DLAP/OpenDirectory access DL',
     '{87191ca7-0fc9-11d4-849a-000502b52122}': 'TP for ".mac" related policies',
     '{87191ca8-0fc9-11d4-849a-000502b52122}': 'Smartcard CSP/DL',
-    '{87191ca9-0fc9-11d4-849a-000502b52122}': 'DL for ".mac" certificate access'
+    '{87191ca9-0fc9-11d4-849a-000502b52122}': 'DL for ".mac" certificate access',
 }
 
 SECURE_STORAGE_GROUP = 'ssgp'
@@ -233,7 +239,7 @@ AUTH_TYPE = {
     'form': 'kSecAuthenticationTypeHTMLForm',
     'dflt': 'kSecAuthenticationTypeDefault',
     '': 'kSecAuthenticationTypeAny',
-    '\x00\x00\x00\x00': 'kSecAuthenticationTypeAny'
+    '\x00\x00\x00\x00': 'kSecAuthenticationTypeAny',
 }
 
 # SecProtocolType
@@ -273,7 +279,7 @@ PROTOCOL_TYPE = {
     'cvsp': 'kSecProtocolTypeCVSpserver',
     'svn ': 'kSecProtocolTypeCVSpserver',
     'AdIM': 'kSecProtocolTypeAdiumMessenger',
-    '\x00\x00\x00\x00': 'kSecProtocolTypeAny'
+    '\x00\x00\x00\x00': 'kSecProtocolTypeAny',
 }
 
 # This is somewhat gross: we define a bunch of module-level constants based on
@@ -313,8 +319,9 @@ CARBON_DEFINES = {
     'inet': 'kSecInternetPasswordItemClass',
     'genp': 'kSecGenericPasswordItemClass',
     'ashp': 'kSecAppleSharePasswordItemClass',
-    CSSM_DL_DB_RECORD_X509_CERTIFICATE: 'kSecCertificateItemClass'
+    CSSM_DL_DB_RECORD_X509_CERTIFICATE: 'kSecCertificateItemClass',
 }
+
 
 class _APPL_DB_HEADER(object):
     STRUCT = Struct('> 4s i i i i')
@@ -360,6 +367,7 @@ class _COMMON_BLOB(object):
 
 class _DB_PARAMETERS(object):
     STRUCT = Struct('> I I')
+
     def __init__(self, buffer):
         (self.IdleTimeout, self.LockOnSleep) = _DB_PARAMETERS.STRUCT.unpack(buffer)
 
@@ -371,7 +379,7 @@ class _GENERIC_PW_HEADER(object):
         (self.RecordSize, self.RecordNumber, self.Unknown2, self.Unknown3, self.SSGPArea, self.Unknown5,
          self.CreationDate, self.ModDate, self.Description, self.Comment, self.Creator, self.Type, self.ScriptCode,
          self.PrintName, self.Alias, self.Invisible, self.Negative, self.CustomIcon, self.Protected, self.Account,
-         self.Service, self.Generic,) = _GENERIC_PW_HEADER.STRUCT.unpack(buffer)
+         self.Service, self.Generic) = _GENERIC_PW_HEADER.STRUCT.unpack(buffer)
 
 
 class _KEY_BLOB_REC_HEADER(object):
@@ -386,7 +394,7 @@ class _KEY_BLOB(object):
     COMMON_BLOB_MAGIC = 0xFADE0711
 
     def __init__(self, buffer):
-        (self.CommonBlobBuffer, self.StartCryptoBlob, self.TotalLength, self.IV,) = _KEY_BLOB.STRUCT.unpack(buffer)
+        (self.CommonBlobBuffer, self.StartCryptoBlob, self.TotalLength, self.IV) = _KEY_BLOB.STRUCT.unpack(buffer)
 
         self.CommonBlob = _COMMON_BLOB(self.CommonBlobBuffer)
 
@@ -396,7 +404,7 @@ class _SSGP(object):
     STRUCT = Struct('> 4s 16s 8s')
 
     def __init__(self, buffer):
-        (self.Magic, self.Label, self.IV,) = _SSGP.STRUCT.unpack(buffer[:28])
+        (self.Magic, self.Label, self.IV) = _SSGP.STRUCT.unpack(buffer[:28])
         self.EncryptedPassword = buffer[28:]
 
 
@@ -408,7 +416,7 @@ class _INTERNET_PW_HEADER(object):
          self.CreationDate, self.ModDate, self.Description, self.Comment, self.Creator, self.Type, self.ScriptCode,
          self.PrintName, self.Alias, self.Invisible, self.Negative, self.CustomIcon, self.Protected, self.Account,
          self.SecurityDomain, self.Server, self.Protocol, self.AuthType, self.Port,
-         self.Path,) = _INTERNET_PW_HEADER.STRUCT.unpack(buffer)
+         self.Path) = _INTERNET_PW_HEADER.STRUCT.unpack(buffer)
 
 
 class _APPLE_SHARE_HEADER(object):
@@ -419,7 +427,7 @@ class _APPLE_SHARE_HEADER(object):
          self.CreationDate, self.ModDate, self.Description, self.Comment, self.Creator, self.Type, self.ScriptCode,
          self.PrintName, self.Alias, self.Invisible, self.Negative, self.CustomIcon, self.Protected, self.Account,
          self.Volume, self.Server, self.Protocol, self.AuthType, self.Address,
-         self.Signature,) = _APPLE_SHARE_HEADER.STRUCT.unpack(buffer)
+         self.Signature) = _APPLE_SHARE_HEADER.STRUCT.unpack(buffer)
 
 
 class _X509_CERT_HEADER(object):
@@ -428,7 +436,7 @@ class _X509_CERT_HEADER(object):
     def __init__(self, buffer):
         (self.RecordSize, self.RecordNumber, self.Unknown1, self.Unknown2, self.CertSize, self.Unknown3, self.CertType,
          self.CertEncoding, self.PrintName, self.Alias, self.Subject, self.Issuer, self.SerialNumber,
-         self.SubjectKeyIdentifier, self.PublicKeyHash,) = _X509_CERT_HEADER.STRUCT.unpack(buffer)
+         self.SubjectKeyIdentifier, self.PublicKeyHash) = _X509_CERT_HEADER.STRUCT.unpack(buffer)
 
 
 # # http://www.opensource.apple.com/source/Security/Security-55179.1/include/security_cdsa_utilities/KeySchema.h
@@ -443,7 +451,7 @@ class _SECKEY_HEADER(object):
          self.KeyCreator, self.KeyType, self.KeySizeInBits, self.EffectiveKeySize, self.StartDate, self.EndDate,
          self.Sensitive, self.AlwaysSensitive, self.Extractable, self.NeverExtractable, self.Encrypt, self.Decrypt,
          self.Derive, self.Sign, self.Verify, self.SignRecover, self.VerifyRecover, self.Wrap,
-         self.UnWrap,) = _SECKEY_HEADER.STRUCT.unpack(buffer)
+         self.UnWrap) = _SECKEY_HEADER.STRUCT.unpack(buffer)
 
 
 class _UNLOCK_BLOB(object):
@@ -460,8 +468,8 @@ class _KEYCHAIN_TIME(object):
     STRPTIME_FORMAT = "%Y%m%d%H%M%SZ"
 
     def __init__(self, buffer):
-        self.Value = _KEYCHAIN_TIME.STRUCT.unpack(buffer)[0].strip('\x00')
-        self.Time = datetime.strptime(self.Value, _KEYCHAIN_TIME.STRPTIME_FORMAT)
+        self.Value = _KEYCHAIN_TIME.STRUCT.unpack(buffer)[0].strip(b'\x00')
+        self.Time = datetime.strptime(self.Value.decode(), _KEYCHAIN_TIME.STRPTIME_FORMAT)
 
     def __repr__(self):
         return
@@ -484,7 +492,7 @@ class _FOUR_CHAR_CODE(object):
 class _LV(object):
     def __init__(self, buffer, length):
         self.STRUCT = Struct(">" + str(length) + "s")
-        self.Value = self.STRUCT.unpack(buffer)[0].strip('\x00')
+        self.Value = self.STRUCT.unpack(buffer)[0].strip(b'\x00')
 
 
 class _RECORD_OFFSET(_INT):
