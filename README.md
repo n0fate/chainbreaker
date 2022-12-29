@@ -1,7 +1,5 @@
-Chainbreaker2 - python 3
+Chainbreaker
 ============
-An updated version of the Chainbreaker2 repository, by making chainbreaker2 compatible for python 3.
-
 Chainbreaker can be used to extract the following types of information from an OSX keychain in a forensically sound manner: 
 
 * Hashed Keychain password, suitable for cracking with [hashcat](https://hashcat.net/hashcat/) or
@@ -60,7 +58,7 @@ Any valid .keychain or .keychain-db can be supplied. Common Keychain locations i
 
 ## Help:
 ```
-$ python ./chainbreaker.py --help
+$ python -m chainbreaker --help
 usage: chainbreaker.py [-h] [--dump-all] [--dump-keychain-password-hash]
                        [--dump-generic-passwords] [--dump-internet-passwords]
                        [--dump-appleshare-passwords] [--dump-private-keys]
@@ -146,12 +144,9 @@ Output Options:
 
 ## Example Usage
 ```
-./chainbreaker.py --password=TestPassword -a test_keychain.keychain
+python -m chainbreaker -pa test_keychain.keychain -o output
 2020-11-12 15:58:18,925 - INFO - 
 
-ChainBreaker 2 - https://github.com/gaddie-3/chainbreaker
-
-2020-11-12 15:58:18,925 - INFO - Runtime Command: chainbreaker.py --password=TestPassword -a test_keychain.keychain
 2020-11-12 15:58:18,925 - INFO - Keychain: test_keychain.keychain
 2020-11-12 15:58:18,925 - INFO - Keychain MD5: eb3abc06c22afa388ca522ea5aa032fc
 2020-11-12 15:58:18,925 - INFO - Keychain 256: 2d76f564ac24fa6a8a22adb6d5cb9b430032785b1ba3effa8ddea38222008441
