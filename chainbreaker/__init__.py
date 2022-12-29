@@ -687,7 +687,7 @@ class Chainbreaker(object):
         if len(data) % Chainbreaker.BLOCKSIZE != 0:
             return b''
 
-        cipher = DES3.new(key, DES3.MODE_CBC, iv=bytearray(iv))
+        cipher = DES3.new(key, DES3.MODE_CBC, IV=iv)
 
         plain = cipher.decrypt(data)
 

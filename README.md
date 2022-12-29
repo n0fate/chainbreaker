@@ -46,7 +46,7 @@ And this returns a keychain object which you can use in your script.
 
 
 ## Supported OS's
-Snow Leopard, Lion, Mountain Lion, Mavericks, Yosemite, El Capitan, (High) Sierra, Mojave, Catalina
+OS X Snow Leopard(10.6) to macOS Ventura(13) 
 
 ## Target Keychain file
 Any valid .keychain or .keychain-db can be supplied. Common Keychain locations include: 
