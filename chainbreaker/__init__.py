@@ -126,7 +126,7 @@ class Chainbreaker(object):
 
         return entries
 
-    # Returns a list of InterertPasswordRecord objects extracted from the Keychain
+    # Returns a list of InternetPasswordRecord objects extracted from the Keychain
     def dump_internet_passwords(self):
         entries = []
         try:
@@ -347,7 +347,7 @@ class Chainbreaker(object):
         else:
             return _FOUR_CHAR_CODE(self.kc_buffer[base_addr + pcol:base_addr + pcol + 4]).Value
 
-    # Get an lv from the keychain buffer
+    # Get a lv from the keychain buffer
     def _get_lv(self, base_addr, pcol):
         if pcol <= 0:
             return ''
@@ -451,7 +451,7 @@ class Chainbreaker(object):
         )
 
     def _get_private_key_record(self, record_offset):
-        record = self._get_key_record(self._get_table_offset(CSSM_DL_DB_RECORD_PRIVATE_KEY), record_offset)
+        record = self._get_key_record(CSSM_DL_DB_RECORD_PRIVATE_KEY, record_offset)
 
         if not self.db_key:
             keyname = privatekey = Chainbreaker.KEYCHAIN_LOCKED_SIGNATURE
@@ -474,7 +474,7 @@ class Chainbreaker(object):
         )
 
     def _get_public_key_record(self, record_offset):
-        record = self._get_key_record(self._get_table_offset(CSSM_DL_DB_RECORD_PUBLIC_KEY), record_offset)
+        record = self._get_key_record(CSSM_DL_DB_RECORD_PUBLIC_KEY, record_offset)
         return self.PublicKeyRecord(
             print_name=record[0],
             label=record[1],
@@ -512,7 +512,7 @@ class Chainbreaker(object):
                 self._get_int(base_addr, record_meta.EffectiveKeySize & 0xFFFFFFFE),
                 self._get_int(base_addr, record_meta.Extractable & 0xFFFFFFFE),
                 STD_APPLE_ADDIN_MODULE[
-                    str(self._get_lv(base_addr, record_meta.KeyCreator & 0xFFFFFFFE)).split('\x00')[0]],
+                    self._get_lv(base_addr, record_meta.KeyCreator & 0xFFFFFFFE).decode('utf-8').split('\x00')[0]],
                 iv,
                 key]
 
@@ -759,7 +759,7 @@ class Chainbreaker(object):
 
         def write_to_disk(self, output_directory):
             # self.exportable contains the content we should write to disk. If it isn't implemented we can't
-            # then writing to disk via this method isn't currently supported.
+            # then can write to disk via this method isn't currently supported.
             try:
                 export_content = self.exportable
             except NotImplementedError:

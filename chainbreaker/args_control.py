@@ -120,6 +120,7 @@ def set_output_dir(args):
                 logger.critical("Unable to create output directory: %s" % args.output)
                 exit(1)
         logger.addHandler(logging.FileHandler(os.path.join(args.output, 'output.log'), mode='w'))
+        return args.output
     else:
         return os.getcwd()
 
