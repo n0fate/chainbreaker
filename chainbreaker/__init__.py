@@ -374,11 +374,9 @@ class Chainbreaker(object):
         if len(plain) == 0:
             return '', ''
 
-        # now we handle the unwrapping. we need to take the first 32 bytes,
-        # and reverse them.
-        revplain = bytes(reversed(plain[0:32]))
-        # now the real key gets found. */
-        plain = Chainbreaker._kcdecrypt(self.db_key, iv, revplain)
+        # reverse the plaintext before decrypting again
+        plain = bytes(reversed(plain))
+        plain = Chainbreaker._kcdecrypt(self.db_key, iv, plain)
 
         keyname = plain[:12]  # Copied Buffer when user click on right and copy a key on Keychain Access
         keyblob = plain[12:]
