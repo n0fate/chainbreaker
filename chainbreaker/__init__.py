@@ -405,17 +405,17 @@ class Chainbreaker(object):
         # return encrypted wrapping key
         return dbkey
 
-    # Extract the Cyphertext, IV, and Salt for the keychain file, for use with offline cracking (e.g. Hashcat)
+    # Extract the Ciphertext, IV, and Salt for the keychain file, for use with offline cracking (e.g. Hashcat)
     # Returns a KeychainPasswordHash object
     def dump_keychain_password_hash(self):
-        cyphertext = hexlify(self.kc_buffer[self.base_addr
+        ciphertext = hexlify(self.kc_buffer[self.base_addr
                                             + self.dbblob.StartCryptoBlob:self.base_addr
                                             + self.dbblob.TotalLength])
 
         iv = hexlify(self.dbblob.IV)
         salt = hexlify(self.dbblob.Salt)
 
-        return self.KeychainPasswordHash(salt, iv, cyphertext)
+        return self.KeychainPasswordHash(salt, iv, ciphertext)
 
     # Given a base address and offset (ID) of a record,
     def _get_appleshare_record(self, record_offset):
@@ -807,16 +807,16 @@ class Chainbreaker(object):
     class KeychainPasswordHash(KeychainRecord):
         KEYCHAIN_PASSWORD_HASH_FORMAT = "$keychain$*%s*%s*%s"
 
-        def __init__(self, salt, iv, cyphertext):
+        def __init__(self, salt, iv, ciphertext):
             self.salt = salt
             self.iv = iv
-            self.cypher_text = cyphertext
+            self.cipher_text = ciphertext
 
             Chainbreaker.KeychainRecord.__init__(self)
 
         def __str__(self):
             return Chainbreaker.KeychainPasswordHash.KEYCHAIN_PASSWORD_HASH_FORMAT % (
-                self.salt, self.iv, self.cypher_text)
+                self.salt, self.iv, self.cipher_text)
 
         @property
         def exportable(self):

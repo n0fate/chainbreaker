@@ -28,7 +28,7 @@ This creates a wheel file (extension: `.whl`) in the `/dist` folder.
 3) Install the wheelfile with pip, or (if in the same directory containing `setup.py`) run: `$ pip install -e .`
 
 ### Running chainbreaker as a module
-After succesfully installing the wheelfile, you can use the module from the command-line (allowing you to use input arguments) as follows:
+After successfully installing the wheelfile, you can use the module from the command-line (allowing you to use input arguments) as follows:
 
 ```$ python -m chainbreaker```
 
