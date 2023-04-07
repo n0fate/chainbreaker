@@ -99,7 +99,7 @@ def resolve(args, keychain):
 
 
 def log_output(output, summary_output, args):
-    # Print all parsed records from output until the end or until keyboard intterupt is given
+    # Print all parsed records from output until the end or until keyboard interrupt is given
     try:
         for record_collection in output:
             if 'records' in record_collection:
