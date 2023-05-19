@@ -959,7 +959,7 @@ class Chainbreaker(object):
 
         @property
         def file_name(self):
-            return "".join(str(x) for x in self.PrintName if type(x) is int)
+            return self.PrintName.decode(errors='ignore')
 
         @property
         def file_ext(self):
@@ -1011,7 +1011,7 @@ class Chainbreaker(object):
 
         @property
         def file_name(self):
-            return "".join(str(x) for x in self.PrintName if type(x) is int)
+            return self.PrintName.decode(errors='ignore')
 
         @property
         def file_ext(self):
