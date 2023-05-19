@@ -342,14 +342,14 @@ class Chainbreaker(object):
     # Get 4 character code from the keychain buffer
     def _get_four_char_code(self, base_addr, pcol):
         if pcol <= 0:
-            return ''
+            return b''
         else:
             return _FOUR_CHAR_CODE(self.kc_buffer[base_addr + pcol:base_addr + pcol + 4]).Value
 
     # Get a lv from the keychain buffer
     def _get_lv(self, base_addr, pcol):
         if pcol <= 0:
-            return ''
+            return b''
 
         str_length = _INT(self.kc_buffer[base_addr + pcol:base_addr + pcol + 4]).Value
         # 4byte arrangement
@@ -362,7 +362,7 @@ class Chainbreaker(object):
             data = _LV(self.kc_buffer[base_addr + pcol + 4:base_addr + pcol + 4 + real_str_len], real_str_len).Value
         except struct.error:
             self.logger.debug('LV string length is too long.')
-            return ''
+            return b''
 
         return data
 
@@ -372,7 +372,7 @@ class Chainbreaker(object):
         plain = Chainbreaker._kcdecrypt(self.db_key, Chainbreaker.MAGIC_CMS_IV, encryptedblob)
 
         if len(plain) == 0:
-            return '', ''
+            return b'', b''
 
         # reverse the plaintext before decrypting again
         plain = bytes(reversed(plain))
@@ -398,7 +398,7 @@ class Chainbreaker(object):
         plain = Chainbreaker._kcdecrypt(master, self.dbblob.IV, ciphertext)
 
         if len(plain) < Chainbreaker.KEYLEN:
-            return ''
+            return b''
 
         dbkey = plain[:Chainbreaker.KEYLEN]
 
@@ -410,10 +410,10 @@ class Chainbreaker(object):
     def dump_keychain_password_hash(self):
         cyphertext = hexlify(self.kc_buffer[self.base_addr
                                             + self.dbblob.StartCryptoBlob:self.base_addr
-                                            + self.dbblob.TotalLength])
+                                            + self.dbblob.TotalLength]).decode()
 
-        iv = hexlify(self.dbblob.IV)
-        salt = hexlify(self.dbblob.Salt)
+        iv = hexlify(self.dbblob.IV).decode()
+        salt = hexlify(self.dbblob.Salt).decode()
 
         return self.KeychainPasswordHash(salt, iv, cyphertext)
 
@@ -959,7 +959,7 @@ class Chainbreaker(object):
 
         @property
         def file_name(self):
-            return "".join(str(x) for x in self.PrintName if type(x) is int)
+            return self.PrintName.decode(errors='ignore')
 
         @property
         def file_ext(self):
@@ -1011,7 +1011,7 @@ class Chainbreaker(object):
 
         @property
         def file_name(self):
-            return "".join(str(x) for x in self.PrintName if type(x) is int)
+            return self.PrintName.decode(errors='ignore')
 
         @property
         def file_ext(self):
